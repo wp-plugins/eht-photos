@@ -1,0 +1,632 @@
+<?php
+
+add_action ("admin_menu", "EHTPhotosAdminAddPages");
+
+function EHTPhotosAdminAddPages ()
+{
+	if (function_exists ("add_options_page"))
+	{
+		add_options_page ('EHT Photos', 'EHT Photos', 8, 'eht-photos-options', 'EHTPhotosAdminOptions');
+		if (function_exists ("add_submenu_page"))
+		{
+			add_submenu_page('options-general.php', $page_title, $menu_title, $access_level, $file, $function);
+		}
+	}
+}
+
+function EHTPhotosAdminOptions ()
+{
+	global $wpdb;
+	global $currentUrl;
+	global $inAdmin;
+	
+	$inAdmin = true;
+	$href = $PHP_SELF . "?page=eht-photos-options&" . EHT_PHOTOS_FIELD_SUBPAGE . "=";
+	echo "<div class=\"wrap\">\n" .
+		 "<h2>EHT Photos</h2>\n" .
+		 "<div id=\"menu\">\n" .
+		 "<a href=\"$href" . EHT_PHOTOS_SUBPAGE_GENERAL . "\">" . EHT_PHOTOS_SUBPAGE_GENERAL . "</a> &middot;\n" .
+		 "<a href=\"$href" . EHT_PHOTOS_SUBPAGE_PHOTOS . "\">" . EHT_PHOTOS_SUBPAGE_PHOTOS . "</a> &middot;\n" .
+		 "<a href=\"$href" . EHT_PHOTOS_SUBPAGE_GALLERY . "\">" . EHT_PHOTOS_SUBPAGE_GALLERY . "</a> &middot;\n" .
+		 "<a href=\"$href" . EHT_PHOTOS_SUBPAGE_GROUPS . "\">" . EHT_PHOTOS_SUBPAGE_GROUPS . "</a> &middot;\n" .
+		 "<a href=\"$href" . EHT_PHOTOS_SUBPAGE_USERS . "\">" . EHT_PHOTOS_SUBPAGE_USERS . "</a>\n" .
+		 "</div>\n" .
+		 "<br>\n";
+	$page = $_REQUEST[EHT_PHOTOS_FIELD_SUBPAGE];
+	switch ($page)
+	{
+		case EHT_PHOTOS_SUBPAGE_GENERAL:
+		default:
+			EHTPhotosAdminSubpageGeneral ($href);
+			break;
+		case EHT_PHOTOS_SUBPAGE_PHOTOS:
+			EHTPhotosAdminSubpagePhotos ($href);
+			break;
+		case EHT_PHOTOS_SUBPAGE_GALLERY:
+			EHTPhotosAdminSubpageGallery ($href);
+			break;
+		case EHT_PHOTOS_SUBPAGE_GROUPS:
+			EHTPhotosAdminSubpageGroups ($href);
+			break;
+		case EHT_PHOTOS_SUBPAGE_USERS:
+			EHTPhotosAdminSubpageUsers ($href);
+			break;
+	}
+	echo "</div>\n" .
+		 "<p align=\"center\">" . EHT_PHOTOS_PLUGIN_DESCRIPTION . "</p>\n";
+}
+
+function EHTPhotosAdminSubpageGeneral ($href)
+{
+	$action = $_REQUEST[EHT_PHOTOS_FIELD_ACTION];
+	if ($action == EHT_PHOTOS_ACTION_UPDATE)
+	{
+		$optionPathImages = $_REQUEST[EHT_PHOTOS_OPTION_PATH_IMAGES];
+		EHTPhotosQuitSlashes ($optionPathImages);
+		
+		$optionPathThumbs = $_REQUEST[EHT_PHOTOS_OPTION_PATH_THUMBS];
+		EHTPhotosQuitSlashes ($optionPathThumbs);
+						
+		$optionThumb = $_REQUEST[EHT_PHOTOS_OPTION_THUMB];
+		if ($optionThumb < EHT_PHOTOS_MIN_THUMB)
+		{
+			echo "<div class=\"error\">The thumbnail size $optionThumb is fewer than the minimum " . EHT_PHOTOS_MIN_THUMB . ", the minimum will be used.</div>\n";
+			$optionThumb = EHT_PHOTOS_MIN_THUMB;
+		}
+		else if ($optionThumb > EHT_PHOTOS_MAX_THUMB)
+		{
+			echo "<div class=\"error\">The thumbnail size $optionThumb is greater than the maximum " . EHT_PHOTOS_MAX_THUMB . ", the maximum will be used.</div>\n";
+			$optionThumb = EHT_PHOTOS_MAX_THUMB;
+		}
+
+		$optionNormal = $_REQUEST[EHT_PHOTOS_OPTION_NORMAL];
+		if ($optionNormal < EHT_PHOTOS_MIN_NORMAL)
+		{
+			echo "<div class=\"error\">The normal photo size $optionNormal is fewer than the minimum " . EHT_PHOTOS_MIN_NORMAL . ", the minimum will be used.</div>\n";
+			$optionNormal = EHT_PHOTOS_MIN_NORMAL;
+		}
+		else if ($optionNormal > EHT_PHOTOS_MAX_NORMAL)
+		{
+			echo "<div class=\"error\">The normal photo size $optionNormal is greater than the maximum " . EHT_PHOTOS_MAX_NORMAL . ", the maximum will be used.</div>\n";
+			$optionNormal = EHT_PHOTOS_MAX_NORMAL;
+		}
+
+		$optionWidth = $_REQUEST[EHT_PHOTOS_OPTION_WIDTH];
+		if ($optionWidth < EHT_PHOTOS_MIN_WIDTH)
+		{
+			echo "<div class=\"error\">The count of photos in horizontal $optionWidth in thumbnail view is fewer than the minimum " . EHT_PHOTOS_MIN_WIDTH . ", the minimum will be used.</div>\n";
+			$optionWidth = EHT_PHOTOS_MIN_WIDTH;
+		}
+		else if ($optionWidth > EHT_PHOTOS_MAX_WIDTH)
+		{
+			echo "<div class=\"error\">The count of photos in horizontal $optionWidth in thumbnail view is greater than the maximum " . EHT_PHOTOS_MAX_WIDTH . ", the maximum will be used.</div>\n";
+			$optionWidth = EHT_PHOTOS_MAX_WIDTH;
+		}
+
+		$optionExif = $_REQUEST[EHT_PHOTOS_OPTION_EXIF];
+
+		$optionResults = $_REQUEST[EHT_PHOTOS_OPTION_RESULTS];
+		if ($optionResults < EHT_PHOTOS_MIN_RESULTS)
+		{
+			echo "<div class=\"error\">The results per page $optionResults is fewer than the minimum " . EHT_PHOTOS_MIN_RESULTS . ", the minimum will be used.</div>\n";
+			$optionResults = EHT_PHOTOS_MIN_RESULTS;
+		}
+		else if ($optionResults > EHT_PHOTOS_MAX_RESULTS)
+		{
+			echo "<div class=\"error\">The results per page $optionResults is greater than the maximum " . EHT_PHOTOS_MAX_RESULTS . ", the maximum will be used.</div>\n";
+			$optionResults = EHT_PHOTOS_MAX_RESULTS;
+		}
+	}
+	else
+	{
+		$optionPathImages = get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
+		$optionPathThumbs = get_option (EHT_PHOTOS_OPTION_PATH_THUMBS);
+		$optionThumb = get_option (EHT_PHOTOS_OPTION_THUMB);
+		$optionNormal = get_option (EHT_PHOTOS_OPTION_NORMAL);
+		$optionWidth = get_option (EHT_PHOTOS_OPTION_WIDTH);
+		$optionExif = get_option (EHT_PHOTOS_OPTION_EXIF);
+		$optionResults = get_option (EHT_PHOTOS_OPTION_RESULTS);
+	}
+
+	$firstUse = (($optionPathImages == "") && 
+				 ($optionPathThumbs == "") &&
+				 ($optionThumb == "") && 
+				 ($optionNormal == "") &&
+				 ($optionWidth == "") &&
+				 ($optionExif == "") &&
+				 ($optionResults == ""));
+	
+	if ($optionThumb == "")
+	{
+		$optionThumb = EHT_PHOTOS_DEFAULT_THUMB;
+		$action = EHT_PHOTOS_ACTION_UPDATE;
+	}
+	if ($optionNormal == "")
+	{
+		$optionNormal = EHT_PHOTOS_DEFAULT_NORMAL;
+		$action = EHT_PHOTOS_ACTION_UPDATE;
+	}
+	if ($optionWidth == "")
+	{
+		$optionWidth = EHT_PHOTOS_DEFAULT_WIDTH;
+		$action = EHT_PHOTOS_ACTION_UPDATE;
+	}
+	if ($optionExif == "")
+	{
+		$optionExif = $firstUse ? EHT_PHOTOS_DEFAULT_EXIF : EHT_PHOTOS_NO;
+		$action = $firstUse ? EHT_PHOTOS_ACTION_UPDATE : $action;
+	}
+	if ($optionResults == "")
+	{
+		$optionResults = EHT_PHOTOS_DEFAULT_RESULTS;
+		$action = EHT_PHOTOS_ACTION_UPDATE;
+	}
+	
+	if ($action == EHT_PHOTOS_ACTION_UPDATE)
+	{
+        update_option (EHT_PHOTOS_OPTION_PATH_IMAGES, $optionPathImages);
+        update_option (EHT_PHOTOS_OPTION_PATH_THUMBS, $optionPathThumbs);
+		update_option (EHT_PHOTOS_OPTION_THUMB, $optionThumb);
+        update_option (EHT_PHOTOS_OPTION_NORMAL, $optionNormal);
+        update_option (EHT_PHOTOS_OPTION_WIDTH, $optionWidth);
+        update_option (EHT_PHOTOS_OPTION_EXIF, $optionExif);
+        update_option (EHT_PHOTOS_OPTION_RESULTS, $optionResults);
+        echo "<div class=\"updated\">The options have been updated.</div>\n";
+	}
+	else if ($action == EHT_PHOTOS_ACTION_INSTALL)
+	{
+		if (!EHTPhotosInstall ($message))
+		{
+        	echo "<div class=\"error\">Fail to intall the DB: $message.</div>\n";
+		}
+		else
+		{
+        	echo "<div class=\"updated\">The plugin data base has been installed.</div>\n";
+		}
+	}
+	else if ($action == EHT_PHOTOS_ACTION_UNINSTALL)
+	{
+		if (!EHTPhotosUninstall ($message))
+		{
+        	echo "<div class=\"error\">Fail to unintall the DB: $message.</div>\n";
+		}
+		else
+		{
+        	echo "<div class=\"updated\">The plugin data base has been uninstalled.</div>\n";
+		}
+	}
+
+	$tables = array (EHT_PHOTOS_TABLE_PHOTO,
+					 EHT_PHOTOS_TABLE_COMMENT,
+					 EHT_PHOTOS_TABLE_GROUP,
+					 EHT_PHOTOS_TABLE_USER,
+					 EHT_PHOTOS_TABLE_PERMISSION);
+	foreach ($tables as $table)
+	{
+		if (!EHTPhotosCheckTable ($table))
+		{
+			echo "<div class=\"error\">The table \"$table\" is NOT installed, please press the button " . EHT_PHOTOS_ACTION_INSTALL . ".</div>\n"; 
+		}
+	}
+	echo "<form method=\"post\" action=\"" . str_replace( '%7E', '~', $_SERVER['REQUEST_URI']) . "\">\n" .
+		 "<input type=\"hidden\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_UPDATE . "\">\n" .
+		 "<p>Relative path (from web root) to images:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_PATH_IMAGES . "\" value=\"$optionPathImages\"></p>\n" .
+		 "<p>Relative path (from web root) to thumbnails:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_PATH_THUMBS . "\" value=\"$optionPathThumbs\"></p>\n" .
+		 "<p>Thumbnail size (in pixels) [" . EHT_PHOTOS_MIN_THUMB . ", " . EHT_PHOTOS_MAX_THUMB . "]:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_THUMB . "\" value=\"$optionThumb\"></p>\n" .
+		 "<p>Normal photo size (in pixels) [" . EHT_PHOTOS_MIN_NORMAL . ", " . EHT_PHOTOS_MAX_NORMAL . "]:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_NORMAL . "\" value=\"$optionNormal\"></p>\n" .
+		 "<p>Count of photos in horizontal in thumbnail view [" . EHT_PHOTOS_MIN_WIDTH . ", " . EHT_PHOTOS_MAX_WIDTH . "]:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_WIDTH . "\" value=\"$optionWidth\"></p>\n" .
+		 "<p>\n" .
+		 "<input type=\"checkbox\" name=\"" . EHT_PHOTOS_OPTION_EXIF . "\" value=\"" . EHT_PHOTOS_YES . "\"";
+	if ($optionExif == EHT_PHOTOS_YES)
+	{
+		echo " checked";
+	}
+	echo "> Show EXIF information in detailed photo view (normal size).\n" .
+		 "</p>\n" .
+		 "<p>Results per page into options menus [" . EHT_PHOTOS_MIN_RESULTS . ", " . EHT_PHOTOS_MAX_RESULTS . "]:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_RESULTS . "\" value=\"$optionResults\"></p>\n" .
+		 "<p>\n" .
+		 "<p class=\"submit\">\n" .
+		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_INSTALL . "\" onclick=\"return confirm ('Do you really want to install the data base?');\">\n" .
+		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_UNINSTALL . "\" onclick=\"return confirm ('Do you really want to uninstall the data base?');\">\n" .
+		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_UPDATE . "\" default>\n" .
+		 "</p>\n" .
+		 "</form>\n";
+}
+
+function EHTPhotosAdminSubpagePhotos ($href)
+{
+	global $wpdb;
+	
+	$action = $_REQUEST[EHT_PHOTOS_FIELD_ACTION];
+	switch ($action)
+	{
+		case EHT_PHOTOS_ACTION_RESET:
+			$id = $_REQUEST[EHT_PHOTOS_FIELD_ID];
+			if ($id)
+			{
+				$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_UPDATE_VIEWS, 0, $id);
+				if (!($wpdb->query ($sql)))
+				{
+					echo "<div class=\"error\">Fail to update: \"$sql\"</div>\n";
+					$ok = false;
+				}
+			}
+			break;
+	}
+	
+	$order = $_REQUEST[EHT_PHOTOS_FIELD_ORDER];
+	$order = (($order == "") ? EHT_PHOTOS_ORDER_ID : $order);
+	$direction = $_REQUEST[EHT_PHOTOS_FIELD_DIRECTION];
+	$direction = (($direction == "") ? "ASC" : $direction);
+	$directionId = (($order != EHT_PHOTOS_ORDER_ID) ? "ASC" : (($direction == "ASC") ? "DESC" : "ASC"));
+	$directionName = (($order != EHT_PHOTOS_ORDER_NAME) ? "ASC" : (($direction == "ASC") ? "DESC" : "ASC"));
+	$directionViews = (($order != EHT_PHOTOS_ORDER_VIEWS) ? "ASC" : (($direction == "ASC") ? "DESC" : "ASC"));
+	$directionMd5 = (($order != EHT_PHOTOS_ORDER_MD5) ? "ASC" : (($direction == "ASC") ? "DESC" : "ASC"));
+	$directionPath = (($order != EHT_PHOTOS_ORDER_PATH) ? "ASC" : (($direction == "ASC") ? "DESC" : "ASC"));
+	
+	$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_COUNT);
+	$row = $wpdb->get_row ($sql);
+	$rowCount = $row->count;
+	$offset = $_REQUEST[EHT_PHOTOS_FIELD_OFFSET];
+	$offset = (($offset == "") ? 0 : $offset);
+	$size = get_option (EHT_PHOTOS_OPTION_RESULTS);
+	if ($size == "")
+	{
+		$size = EHT_PHOTOS_DEFAULT_RESULTS;
+	}
+	
+	$href .= EHT_PHOTOS_SUBPAGE_PHOTOS . "&";
+	$path = $_SERVER["DOCUMENT_ROOT"];
+	$optionImages = get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
+	$basePath = EHTPhotosQuitSlashes ($path, true) . EHT_PHOTOS_SLASH . EHTPhotosQuitSlashes ($optionImages);
+	$url = get_option ("siteurl");
+	$optionThumbs = get_option (EHT_PHOTOS_OPTION_PATH_THUMBS);
+	$baseUrl = EHTPhotosQuitSlashes ($url, true) . EHT_PHOTOS_SLASH . EHTPhotosQuitSlashes ($optionThumbs);
+	
+	$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL, $order, $direction, $offset, $size);
+	$rows = $wpdb->get_results ($sql);
+	echo "<table>\n" .
+		 "   <tr>\n" .
+		 "      <th>Photo count</th>\n" .
+		 "      <th>Results per page</th>\n" .
+		 "      <th>Page to show</th>\n" .
+		 "   </tr>\n" .
+		 "   <tr class=\"alternate\">\n" .
+		 "      <td>$rowCount</td>\n" .
+		 "      <td>$size</td>\n" .
+		 "      <td>\n" .
+		 "         <form action=\"none\">\n" .
+		 "            <select onchange=\"window.location = '$href" . EHT_PHOTOS_FIELD_ORDER . "=$order&" . EHT_PHOTOS_FIELD_DIRECTION . "=$direction&" . EHT_PHOTOS_FIELD_OFFSET . "=' + this.options[this.selectedIndex].value;\">\n";
+	$pages = floor (($rowCount + $size - 1) / $size);
+	for ($i = 0; $i < $pages; $i++)
+	{
+		echo "               <option " . ((($i * $size) == $offset) ? "selected " : "") . "value=\"" . ($i * $size) . "\">" . ($i + 1) . "</option>\n";
+	}
+	echo "            </select>\n" .
+		 "         </form>\n" .
+		 "      </td>\n" .
+		 "   </tr>\n" .
+		 "</table>\n" .
+		 "<p>\n" .
+		 "   <b>Instructions:</b><br>\n" .
+		 "   Press <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_RESET . "\"> to reset the photo views counter.<br>\n" .
+		 "   Put the mouse over <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_PHOTO . "\"> to see the photo thumbnail.<br>\n" .
+		 "</p>\n" .
+		 "<table width=\"100%\">\n" .
+		 "   <tr>\n" .
+		 "      <th align=\"left\"></th>\n" .
+		 "      <th align=\"left\"></th>\n" .
+		 "      <th align=\"left\"><a href=\"$href" . EHT_PHOTOS_FIELD_ORDER . "=" . EHT_PHOTOS_ORDER_ID . "&" . EHT_PHOTOS_FIELD_DIRECTION . "=" . $directionId . "\">ID</a></th>\n" .
+		 "      <th align=\"left\"><a href=\"$href" . EHT_PHOTOS_FIELD_ORDER . "=" . EHT_PHOTOS_ORDER_NAME . "&" . EHT_PHOTOS_FIELD_DIRECTION . "=" . $directionName . "\">Name</a></th>\n" .
+		 "      <th align=\"left\"><a href=\"$href" . EHT_PHOTOS_FIELD_ORDER . "=" . EHT_PHOTOS_ORDER_VIEWS . "&" . EHT_PHOTOS_FIELD_DIRECTION . "=" . $directionViews . "\">Views</a></th>\n" .
+		 "      <th align=\"left\">Thumbnail</th>\n" .
+		 "      <th align=\"left\"><a href=\"$href" . EHT_PHOTOS_FIELD_ORDER . "=" . EHT_PHOTOS_ORDER_MD5 . "&" . EHT_PHOTOS_FIELD_DIRECTION . "=" . $directionMd5 . "\">MD5</a></th>\n" .
+		 "      <th align=\"left\"><a href=\"$href" . EHT_PHOTOS_FIELD_ORDER . "=" . EHT_PHOTOS_ORDER_PATH . "&" . EHT_PHOTOS_FIELD_DIRECTION . "=" . $directionPath . "\">Photo full path</a></th>\n" .
+		 "   </tr>\n";
+	$i = 0;
+	$count = count ($rows);
+	foreach ($rows as $row)
+	{
+		$i++;
+		$id	= $row->id;
+		$name = $row->name;
+		$views = $row->views;
+		$md5 = $row->md5;
+		$path = $row->path;
+		
+		$image = "";
+		if ($path != "")
+		{
+			$image = $baseUrl . substr ($path, strlen ($basePath));
+		}
+		$class = ("alternate" == $class) ? "" : "alternate";
+		
+		echo "   <tr class=\"$class\">\n" .
+			 "      <td valign=\"top\">\n";
+		if ($views > 0)
+		{
+			echo "         <span onClick=\"window.location = '$href" . EHT_PHOTOS_FIELD_ORDER . "=$order&" . EHT_PHOTOS_FIELD_DIRECTION . "=$direction&" . EHT_PHOTOS_FIELD_ACTION . "=" . EHT_PHOTOS_ACTION_RESET . "&" . EHT_PHOTOS_FIELD_ID . "=" . $id . "';\" style=\"cursor: pointer;\">\n" .
+				 "            <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_RESET . "\" border=\"0\" title=\"Reset views counter\">\n" .
+				 "         </span>\n";
+		}
+		echo "      </td>\n" .
+			 "      <td valign=\"top\">\n";
+		if ($image != "")
+		{
+			echo "         <span style=\"cursor: pointer;\" onMouseOver=\"document.getElementById ('thumb$id').style.visibility = 'visible';\" onMouseOut=\"document.getElementById ('thumb$id').style.visibility = 'hidden';\">\n" .
+				 "            <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_PHOTO . "\" border=\"0\" title=\"View the photo thumbnail\">\n" .
+				 "         </span>\n";
+		}
+		echo "      </td>\n" .
+			 "      <td valign=\"top\">$id</td>\n" .
+			 "      <td valign=\"top\">$name</td>\n" .
+			 "      <td valign=\"top\">$views</td>\n" .
+			 "      <td valign=\"top\" align=\"center\">\n";
+		if ($image != "")
+		{
+			EHTPhotosExtractExtension ($image, $file, $extension);
+			$image = $file . "_" . get_option (EHT_PHOTOS_OPTION_THUMB) . "." . $extension;
+			$height = ($i < $count) ? "height: 0px;" : "";
+			echo "         <div id=\"thumb$id\" style=\"visibility: hidden; $height\">\n" .
+				 "            <img src=\"$image\">\n" .
+				 "         </div>\n";
+		}
+		echo "      </td>\n" .
+			 "      <td valign=\"top\"><small>$md5</small></td>\n" .
+			 "      <td valign=\"top\"><small>$path</small></td>\n" .
+			 "   </tr>\n";
+	}
+	echo "</table>\n";
+}
+
+function EHTPhotosAdminSubpageGallery ($href)
+{
+	global $currentUrl;
+	global $wpdb;
+
+	$action = $_REQUEST[EHT_PHOTOS_FIELD_ACTION];
+	switch ($action)
+	{
+		case EHT_PHOTOS_ACTION_UPDATE:
+			$path = $_REQUEST[EHT_PHOTOS_FIELD_PATH];
+			$sql = sprintf (EHT_PHOTOS_TABLE_GROUP_SELECT_ALL);
+			$rows = $wpdb->get_results ($sql);
+			foreach ($rows as $row)
+			{
+				$groupId = $_REQUEST[EHT_PHOTOS_FIELD_GROUP . $row->id];
+				$sql = sprintf ($groupId ? EHT_PHOTOS_TABLE_PERMISSION_INSERT : EHT_PHOTOS_TABLE_PERMISSION_DELETE, $row->id, $path);					
+				$wpdb->query ($sql);
+			}
+       		echo "<div class=\"updated\">Permissions updated into \"$path\"</div>\n";
+			break;
+	}
+	
+	$currentUrl = $href . EHT_PHOTOS_SUBPAGE_GALLERY . "&";
+	echo EHTPhotosFilterTheContent ("[photos images= path=yes]");
+}
+
+function EHTPhotosAdminSubpageGroups ($href)
+{
+	global $wpdb;
+	
+	$action = $_REQUEST[EHT_PHOTOS_FIELD_ACTION];
+	$id = $_REQUEST[EHT_PHOTOS_FIELD_ID];
+	$name = $_REQUEST[EHT_PHOTOS_FIELD_NAME];
+	$description = $_REQUEST[EHT_PHOTOS_FIELD_DESCRIPTION];
+	switch ($action)
+	{
+		case EHT_PHOTOS_ACTION_CREATE:
+			if ($name != "")
+			{
+				$sql = sprintf (EHT_PHOTOS_TABLE_GROUP_INSERT, $name, $description, $id);
+				if (!($wpdb->query ($sql)))
+				{
+					echo "<div class=\"error\">Fail to insert: \"$sql\"</div>\n";
+					$ok = false;
+				}
+				else
+				{
+        			echo "<div class=\"updated\">Group \"$name\" created</div>\n";
+				}
+			}
+			$id = "";
+			$name = "";
+			$description = "";
+			break;
+		case EHT_PHOTOS_ACTION_UPDATE:
+			if (($id != "") && ($name != "") && ($name != EHT_PHOTOS_GROUP_PUBLIC))
+			{
+				$sql = sprintf (EHT_PHOTOS_TABLE_GROUP_UPDATE, $name, $description, $id);
+				if (!($wpdb->query ($sql)))
+				{
+					echo "<div class=\"error\">Fail to update: \"$sql\"</div>\n";
+					$ok = false;
+				}
+				else
+				{
+        			echo "<div class=\"updated\">Group \"$name\" updated</div>\n";
+				}
+			}
+			$id = "";
+			$name = "";
+			$description = "";
+			break;
+		case EHT_PHOTOS_ACTION_DELETE:
+			if (($id != "") && ($name != "") && ($name != EHT_PHOTOS_GROUP_PUBLIC))
+			{
+				$sql = sprintf (EHT_PHOTOS_TABLE_GROUP_DELETE, $id);
+				if (!($wpdb->query ($sql)))
+				{
+					echo "<div class=\"error\">Fail to delete: \"$sql\"</div>\n";
+					$ok = false;
+				}
+				else
+				{
+        			echo "<div class=\"updated\">Group \"$name\" deleted</div>\n";
+				}
+			}
+			$id = "";
+			$name = "";
+			$description = "";
+			break;
+	}
+
+	$href .= EHT_PHOTOS_SUBPAGE_GROUPS;
+	$sql = sprintf (EHT_PHOTOS_TABLE_GROUP_SELECT_ALL);
+	$rows = $wpdb->get_results ($sql);
+	echo "<div class=\"info\">\n" .
+		 "   <b>Instructions:</b><br>\n" .
+		 "   Press <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_EDIT . "\"> to update a group.<br>\n" .
+		 "   Press <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_DELETE . "\"> to delete a group.<br>\n" .
+		 "</div>\n" .
+		 "<table>\n" .
+		 "   <tr>\n" .
+		 "      <th align=\"left\"></th>\n" .
+		 "      <th align=\"left\"></th>\n" .
+		 "      <th align=\"left\">ID</th>\n" .
+		 "      <th align=\"left\">Name</th>\n" .
+		 "      <th align=\"left\">Description</th>\n" .
+		 "   </tr>\n";
+	foreach ($rows as $row)
+	{
+		$class = ("alternate" == $class) ? "" : "alternate";
+		
+		echo "   <tr class=\"$class\">\n" .
+			 "      <td valign=\"top\">\n";
+		if ($row->name != EHT_PHOTOS_GROUP_PUBLIC)
+		{
+			echo "         <span onClick=\"window.location = '$href&" . EHT_PHOTOS_FIELD_ACTION . "=" . EHT_PHOTOS_ACTION_EDIT . "&" . EHT_PHOTOS_FIELD_ID . "=$row->id&" . EHT_PHOTOS_FIELD_NAME . "=$row->name&" . EHT_PHOTOS_FIELD_DESCRIPTION . "=$row->description';\" style=\"cursor: pointer;\">\n" .
+				 "            <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_EDIT . "\" border=\"0\" title=\"Edit the group\">\n" .
+				 "         </span>\n";
+		}
+		echo "      </td>\n" .
+			 "      <td valign=\"top\">\n";
+		if ($row->name != EHT_PHOTOS_GROUP_PUBLIC)
+		{
+			echo "         <span onClick=\"if (confirm ('Do you really want to delete the group $row->name?')) window.location = '$href&" . EHT_PHOTOS_FIELD_ACTION . "=" . EHT_PHOTOS_ACTION_DELETE . "&" . EHT_PHOTOS_FIELD_ID . "=$row->id&" . EHT_PHOTOS_FIELD_NAME . "=$row->name';\" style=\"cursor: pointer;\">\n" .
+				 "            <img src=\"" . EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES . EHT_PHOTOS_ICON_DELETE . "\" border=\"0\" title=\"Delete the group\">\n" .
+				 "         </span>\n";
+		}
+		echo "      </td>\n" .
+			 "      <td valign=\"top\">$row->id</td>\n" .
+			 "      <td valign=\"top\">$row->name</td>\n" .
+			 "      <td valign=\"top\">$row->description</td>\n" .
+			 "   </tr>\n";
+	}
+	echo "</table>\n";
+	
+	$formAction = (($action == EHT_PHOTOS_ACTION_EDIT) ? EHT_PHOTOS_ACTION_UPDATE : EHT_PHOTOS_ACTION_CREATE);
+	echo "<form method=\"post\" action=\"$href\">\n" .
+		 "<input type=\"hidden\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"$formAction\">\n" .
+		 "<input type=\"hidden\" name=\"" . EHT_PHOTOS_FIELD_ID . "\" value=\"$id\">\n" .
+		 "<p>Group name:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_FIELD_NAME . "\" value=\"$name\"></p>\n" .
+		 "<p>Group description:<br>\n" .
+		 "<input type=\"text\" name=\"" . EHT_PHOTOS_FIELD_DESCRIPTION . "\" value=\"$description\"></p>\n" .
+		 "<p>\n" .
+		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"$formAction\">\n" .
+		 "</p>\n" .
+		 "</form>\n";	
+}
+
+function EHTPhotosAdminSubpageUsers ($href)
+{
+	global $wpdb;
+	
+	$sql = sprintf (EHT_PHOTOS_TABLE_GROUP_SELECT_NAMES);
+	$rowsGroup = $wpdb->get_results ($sql);
+	$sql = sprintf (EHT_PHOTOS_TABLE_USER_SELECT_NAMES);
+	$rowsUser = $wpdb->get_results ($sql);
+	$matrix = array ();
+	foreach ($rowsUser as $rowUser)
+	{
+		$matrix[$rowUser->id] = array ();
+		foreach ($rowsGroup as $rowGroup)
+		{
+			$matrix[$rowUser->id][$rowGroup->id] = false;
+		}
+	}
+	
+	$sql = sprintf (EHT_PHOTOS_TABLE_USER_SELECT_ALL);
+	$rows = $wpdb->get_results ($sql);
+	foreach ($rows as $row)
+	{
+		$matrix[$row->idUser][$row->idGroup] = true;
+	}
+	
+	$action = $_REQUEST[EHT_PHOTOS_FIELD_ACTION];
+	switch ($action)
+	{
+		case EHT_PHOTOS_ACTION_UPDATE:
+			$ok = true;
+			foreach ($rowsUser as $rowUser)
+			{
+				foreach ($rowsGroup as $rowGroup)
+				{
+					$name = sprintf (EHT_PHOTOS_FIELD_USER, $rowUser->id, $rowGroup->id);
+					$checked = isset ($_REQUEST[$name]);
+					if ($checked != $matrix[$rowUser->id][$rowGroup->id])
+					{
+						$sql = sprintf (($checked ? EHT_PHOTOS_TABLE_USER_INSERT : EHT_PHOTOS_TABLE_USER_DELETE), $rowUser->id, $rowGroup->id);
+						if (!($wpdb->query ($sql)))
+						{
+							$ok = false;
+						}
+						else
+						{
+							$matrix[$rowUser->id][$rowGroup->id] = $checked;
+						}
+					}
+				}
+			}
+			if ($ok)
+			{
+        		echo "<div class=\"updated\">User asignation to groups updated</div>\n";
+			}
+			else
+			{
+        		echo "<div class=\"updated\">Fail to asignate users to groups</div>\n";
+			}
+			break;
+	}
+	
+	$href .= EHT_PHOTOS_SUBPAGE_USERS;
+	echo "<form method=\"post\" action=\"$href\">\n" .
+		 "<table>\n" .
+		 "   <tr valign=\"bottom\">\n" .
+		 "      <th align=\"left\">User ID</th>\n" .
+		 "      <th align=\"left\">User name</th>\n";
+	foreach ($rowsGroup as $rowGroup)
+	{
+		echo "      <th align=\"center\">" . wordwrap ($rowGroup->name, EHT_PHOTOS_COLUMN_WRAP, "<br>", true) . "</th>\n";
+	}
+	echo "   </tr>\n";
+	
+	foreach ($rowsUser as $rowUser)
+	{
+		$class = ("alternate" == $class) ? "" : "alternate";
+		echo "   <tr class=\"$class\">\n" .
+			 "      <td align=\"center\" valign=\"top\">$rowUser->id</td>\n" .
+			 "      <td valign=\"top\">$rowUser->name</td>\n";
+		foreach ($rowsGroup as $rowGroup)
+		{
+			$value = $matrix[$rowUser->id][$rowGroup->id];
+			$name = sprintf (EHT_PHOTOS_FIELD_USER, $rowUser->id, $rowGroup->id);
+			echo "      <td align=\"center\"><input type=\"checkbox\" name=\"$name\"" . ($value ? " checked" : "") . "</td>\n";
+		}
+		echo "   </tr>\n";
+	}
+	echo "</table>\n" .
+		 "<p>\n" .
+		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_UPDATE . "\">\n" .
+		 "</p>\n" .
+		 "</form>\n";
+}
+
+?>

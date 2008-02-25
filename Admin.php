@@ -2,6 +2,8 @@
 
 add_action ("admin_menu", "EHTPhotosAdminAddPages");
 
+require_once (ABSPATH . "wp-admin/includes/upgrade.php");
+
 function EHTPhotosAdminAddPages ()
 {
 	if (function_exists ("add_options_page"))
@@ -258,6 +260,16 @@ function EHTPhotosAdminSubpagePhotos ($href)
 				}
 			}
 			break;
+		case EHT_PHOTOS_ACTION_RESET_PHOTOS:
+			if (!EHTPhotosResetPhotos ($message))
+			{
+	        	echo "<div class=\"error\">Fail to reset the photo datas: $message.</div>\n";
+			}
+			else
+			{
+	        	echo "<div class=\"updated\">The photo datas have been reset.</div>\n";
+			}
+			break;
 	}
 	
 	$order = $_REQUEST[EHT_PHOTOS_FIELD_ORDER];
@@ -383,6 +395,12 @@ function EHTPhotosAdminSubpagePhotos ($href)
 			 "   </tr>\n";
 	}
 	echo "</table>\n";
+
+	echo "<form method=\"post\" action=\"" . str_replace( '%7E', '~', $_SERVER['REQUEST_URI']) . "\">\n" .
+		 "<p class=\"submit\">\n" .
+		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_RESET_PHOTOS . "\" onclick=\"return confirm ('Do you really want to reset the photo datas?');\">\n" .
+		 "</p>\n" .
+		 "</form>\n";
 }
 
 function EHTPhotosAdminSubpageGallery ($href)
@@ -627,6 +645,107 @@ function EHTPhotosAdminSubpageUsers ($href)
 		 "<input type=\"submit\" name=\"" . EHT_PHOTOS_FIELD_ACTION . "\" value=\"" . EHT_PHOTOS_ACTION_UPDATE . "\">\n" .
 		 "</p>\n" .
 		 "</form>\n";
+}
+
+function EHTPhotosCheckTable ($table)
+{
+	global $wpdb;
+
+	$sql = sprintf (EHT_PHOTOS_TABLE_CHECK, $table);
+	$result = $wpdb->get_var ($sql);
+	
+	return ($result == $table);
+}
+
+function EHTPhotosInstall (&$message)
+{
+	global $wpdb;
+	$tables = array (EHT_PHOTOS_TABLE_PHOTO => EHT_PHOTOS_TABLE_PHOTO_CREATE,
+					 EHT_PHOTOS_TABLE_COMMENT => EHT_PHOTOS_TABLE_COMMENT_CREATE,
+					 EHT_PHOTOS_TABLE_GROUP => EHT_PHOTOS_TABLE_GROUP_CREATE,
+					 EHT_PHOTOS_TABLE_USER => EHT_PHOTOS_TABLE_USER_CREATE,
+					 EHT_PHOTOS_TABLE_PERMISSION => EHT_PHOTOS_TABLE_PERMISSION_CREATE);
+	$values = array ();
+	
+	$ok = true;
+	$message = "";
+	foreach ($tables as $table => $query)
+	{
+		dbDelta ($query);
+		
+		if (!EHTPhotosCheckTable ($table))
+		{
+			if ($message != "")
+			{
+				$message .= "<br>\n";
+			}
+			$message .= "Fail to create the table \"$table\" with query \"$query\"";
+			$ok = false;
+		}
+	}
+	if ($ok)
+	{
+		foreach ($values as $table => $query)
+		{
+			$wpdb->query ($query);
+		}
+	}
+	
+	return ($ok);
+}
+
+function EHTPhotosUninstall (&$message)
+{
+	global $wpdb;
+	$tables = array (EHT_PHOTOS_TABLE_PHOTO,
+					 EHT_PHOTOS_TABLE_COMMENT,
+					 EHT_PHOTOS_TABLE_GROUP,
+					 EHT_PHOTOS_TABLE_USER,
+					 EHT_PHOTOS_TABLE_PERMISSION);
+	
+	$ok = true;
+	$message = "";
+	foreach ($tables as $table)
+	{
+		if (!EHTPhotosCheckTable ($table))
+		{
+			if ($message != "")
+			{
+				$message .= "<br>\n";
+			}
+			$message .= "The table to drop \"$table\" doesn't exist";
+			$ok = false;
+		}
+		else
+		{
+			$query = sprintf (EHT_PHOTOS_TABLE_DROP, $table);
+			$wpdb->query ($query);
+			if (EHTPhotosCheckTable ($table))
+			{
+				if ($message != "")
+				{
+					$message .= "<br>\n";
+				}
+				$message .= "Fail to drop the table \"$table\" with query \"$query\"";
+				$ok = false;
+			}
+		}
+	}
+	
+	return ($ok);
+}
+
+function EHTPhotosResetPhotos ($message)
+{
+	global $wpdb;
+	
+	$ok = true;
+	$message = "";
+	
+	$sql = sprintf (EHT_PHOTOS_TABLE_DELETE_ALL, EHT_PHOTOS_TABLE_PHOTO);
+	$wpdb->query ($sql);
+	
+	return ($ok);
 }
 
 ?>

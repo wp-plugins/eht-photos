@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.5
+Version:		1.5.1
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.
@@ -16,6 +16,7 @@ History:		0.1		First release.
 				0.8		Added subpages to options menu, so now there are these subpages: General Options (the previous option page), Photos (you can see all the photos information).
 				1.0		Remove tag "thumbs" from plugin sintax, and added two options: "path to images" and "path to thumbs", so the "images" tag is relative to the two new options. Into the options menu subpage "Photos" now you can see the thumbnail into the photo list.
 				1.5		Added permissions support, so you can require permissions to view folders and files from the administration options menu, and define groups.
+				1.5.1	Corrected some errors.
 
 Setup:
 	1) Install the plugin.
@@ -43,7 +44,7 @@ define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plug
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5.1");
 define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">EHT Photos v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
 define ("EHT_PHOTOS_OPTION_PATH_IMAGES", "eht-photos-option-path-images");
 define ("EHT_PHOTOS_OPTION_PATH_THUMBS", "eht-photos-option-path-thumbs");
@@ -63,6 +64,7 @@ define ("EHT_PHOTOS_ACTION_INSTALL", "Install DB");
 define ("EHT_PHOTOS_ACTION_UNINSTALL", "Uninstall DB");
 define ("EHT_PHOTOS_ACTION_UPDATE", "Update");
 define ("EHT_PHOTOS_ACTION_RESET", "Reset");
+define ("EHT_PHOTOS_ACTION_RESET_PHOTOS", "Reset photos");
 define ("EHT_PHOTOS_ACTION_CREATE", "Create");
 define ("EHT_PHOTOS_ACTION_EDIT", "Edit");
 define ("EHT_PHOTOS_FIELD_ORDER", "eht-photos-field-order");
@@ -123,6 +125,8 @@ define ("EHT_PHOTOS_TABLE_USER", $wpdb->prefix . "eht_photos_user");
 define ("EHT_PHOTOS_TABLE_PERMISSION", $wpdb->prefix . "eht_photos_permission");
 define ("EHT_PHOTOS_TABLE_CHECK", "SHOW TABLES LIKE \"%s\";");
 define ("EHT_PHOTOS_TABLE_DROP", "DROP TABLE %s;");
+define ("EHT_PHOTOS_TABLE_DELETE_ALL",
+		"DELETE FROM %s;");
 define ("EHT_PHOTOS_TABLE_PHOTO_CREATE",
 		"CREATE TABLE " . EHT_PHOTOS_TABLE_PHOTO . " (
 		  id INT NOT NULL AUTO_INCREMENT,
@@ -311,7 +315,7 @@ function EHTPhotosPrint ($printPath,
 	$currentMode = EHTPhotosGetVar (EHT_PHOTOS_VAR_MODE . $index);
 	$currentPhoto = EHTPhotosGetVar (EHT_PHOTOS_VAR_PHOTO . $index);
 	
-	$files = EHTPhotosListExtensions ($pathImages . $currentPath, $currentPath, split (",", EHT_PHOTOS_PHOTO_EXTENSIONS));
+	$files = EHTPhotosListExtensions (EHTPhotosConcatPaths ($pathImages, $currentPath), $currentPath, split (",", EHT_PHOTOS_PHOTO_EXTENSIONS));
 	
 	if ($printPath)
 	{
@@ -402,12 +406,11 @@ function EHTPhotosListFiltered ($path,
 	
 	if (!$inAdmin)
 	{
-		$basePath = $goodPath . EHT_PHOTOS_SLASH . 
-					get_option (EHT_PHOTOS_OPTION_PATH_IMAGES) . EHT_PHOTOS_SLASH;
-		$basePath = substr ($basePath, strlen ($basePath)) .  $currentPath;
+		$basePath = EHTPhotosConcatPaths ($goodPath, get_option (EHT_PHOTOS_OPTION_PATH_IMAGES)) . EHT_PHOTOS_SLASH;
+		$basePath = EHTPhotosConcatPaths (substr ($basePath, strlen ($basePath)), $currentPath);
 		$basePermissions = array ();
 		EHTPhotosGetFullPermissions ($basePath, $basePermissions);
-
+		
 		$groups = array ();
 		$sql = sprintf (EHT_PHOTOS_TABLE_USER_SELECT_GROUPS, $user_ID);
 		$rows = $wpdb->get_results ($sql);
@@ -423,13 +426,14 @@ function EHTPhotosListFiltered ($path,
 	$files[] = array ();
 	while (false !== ($entry = readdir ($folder)))
 	{
-	    if (($entry != ".") && ($entry != ".."))
+		if (($entry != ".") && ($entry != ".."))
 	    {
 	    	$goOn = true;
 	    	if (!$inAdmin)
 	    	{
 		    	$permissions = $basePermissions;
-		    	EHTPhotosGetPermissions ($basePath . $entry, $permissions);
+		    	$entryPath = EHT_PHOTOS_SLASH . EHTPhotosConcatPaths ($basePath, $entry);
+		    	EHTPhotosGetPermissions ($entryPath, $permissions);
 		    	if (count ($permissions) > 0)
 		    	{
 		    		$goOn = false;
@@ -448,7 +452,7 @@ function EHTPhotosListFiltered ($path,
 	    	
 	    	if ($goOn)
 	    	{
-				if (is_dir ($path . $entry))
+	    		if (is_dir (EHTPhotosConcatPaths ($path, $entry)))
 				{
 				    $files[0][] = $entry;
 				}
@@ -542,7 +546,7 @@ function EHTPhotosPrintNormal ($name,
 			 "            <a href=\"$link\" target=\"_blank\">" . htmlentities ($name) . "</a>\n" .
 			 "         </td>\n" .
 			 "      </tr>\n";
-	$fullPath = $pathImages . $currentPath . $name;
+	$fullPath = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($pathImages, $currentPath), $name);
 	$md5 = md5_file ($fullPath);
 	$description = EHTPhotosGetDescription ($md5, false, $name, $fullPath);
 	if ($description != "")
@@ -907,7 +911,7 @@ function EHTPhotosGetDescription ($md5,
 	}
 	else
 	{
-		$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_INSERT, $md5, $photo, $path, $fullPath);
+		$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_INSERT, $md5, $photo, $fullPath);
 		if (!($wpdb->query ($sql)))
 		{
 			$text .= "Fail to insert: \"$sql\"<br>\n";
@@ -1122,92 +1126,31 @@ function EHTPhotosTextVertical ($text)
 	return ($vertical);
 }
 
-function EHTPhotosCheckTable ($table)
+function EHTPhotosConcatPaths ($path1, $path2)
 {
-	global $wpdb;
-
-	$sql = sprintf (EHT_PHOTOS_TABLE_CHECK, $table);
-	$result = $wpdb->get_var ($sql);
-	
-	return ($result == $table);
-}
-
-function EHTPhotosInstall (&$message)
-{
-	global $wpdb;
-	$tables = array (EHT_PHOTOS_TABLE_PHOTO => EHT_PHOTOS_TABLE_PHOTO_CREATE,
-					 EHT_PHOTOS_TABLE_COMMENT => EHT_PHOTOS_TABLE_COMMENT_CREATE,
-					 EHT_PHOTOS_TABLE_GROUP => EHT_PHOTOS_TABLE_GROUP_CREATE,
-					 EHT_PHOTOS_TABLE_USER => EHT_PHOTOS_TABLE_USER_CREATE,
-					 EHT_PHOTOS_TABLE_PERMISSION => EHT_PHOTOS_TABLE_PERMISSION_CREATE);
-	$values = array ();
-	
-	$ok = true;
-	$message = "";
-	foreach ($tables as $table => $query)
+	$length1 = strlen ($path1);
+	$length2 = strlen ($path2);
+	if ($length1 > 0)
 	{
-		dbDelta ($query);
-		
-		if (!EHTPhotosCheckTable ($table))
+		$path .= $path1;
+		if (($path1[$length1 - 1] != EHT_PHOTOS_SLASH) && ($length2 > 0))
 		{
-			if ($message != "")
-			{
-				$message .= "<br>\n";
-			}
-			$message .= "Fail to create the table \"$table\" with query \"$query\"";
-			$ok = false;
+			$path .= EHT_PHOTOS_SLASH;
 		}
 	}
-	if ($ok)
+	if ($length2 > 0)
 	{
-		foreach ($values as $table => $query)
+		if ($path2[0] == EHT_PHOTOS_SLASH)
 		{
-			$wpdb->query ($query);
-		}
-	}
-	
-	return ($ok);
-}
-
-function EHTPhotosUninstall (&$message)
-{
-	global $wpdb;
-	$tables = array (EHT_PHOTOS_TABLE_PHOTO,
-					 EHT_PHOTOS_TABLE_COMMENT,
-					 EHT_PHOTOS_TABLE_GROUP,
-					 EHT_PHOTOS_TABLE_USER,
-					 EHT_PHOTOS_TABLE_PERMISSION);
-	
-	$ok = true;
-	$message = "";
-	foreach ($tables as $table)
-	{
-		if (!EHTPhotosCheckTable ($table))
-		{
-			if ($message != "")
-			{
-				$message .= "<br>\n";
-			}
-			$message .= "The table to drop \"$table\" doesn't exist";
-			$ok = false;
+			$path .= substr ($path2, 1, $length2 - 1);
 		}
 		else
 		{
-			$query = sprintf (EHT_PHOTOS_TABLE_DROP, $table);
-			$wpdb->query ($query);
-			if (EHTPhotosCheckTable ($table))
-			{
-				if ($message != "")
-				{
-					$message .= "<br>\n";
-				}
-				$message .= "Fail to drop the table \"$table\" with query \"$query\"";
-				$ok = false;
-			}
+			$path .= $path2;
 		}
 	}
 	
-	return ($ok);
+	return ($path);
 }
 
 ?>

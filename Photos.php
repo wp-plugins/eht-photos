@@ -17,6 +17,7 @@ History:		0.1		First release.
 				1.0		Remove tag "thumbs" from plugin sintax, and added two options: "path to images" and "path to thumbs", so the "images" tag is relative to the two new options. Into the options menu subpage "Photos" now you can see the thumbnail into the photo list.
 				1.5		Added permissions support, so you can require permissions to view folders and files from the administration options menu, and define groups.
 				1.5.1	Corrected some errors.
+				1.5.2	Corrected some errors (issue #4).
 
 Setup:
 	1) Install the plugin.
@@ -44,7 +45,7 @@ define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plug
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5.1");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5.2");
 define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">EHT Photos v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
 define ("EHT_PHOTOS_OPTION_PATH_IMAGES", "eht-photos-option-path-images");
 define ("EHT_PHOTOS_OPTION_PATH_THUMBS", "eht-photos-option-path-thumbs");
@@ -52,7 +53,7 @@ define ("EHT_PHOTOS_OPTION_THUMB", "eht-photos-option-thumb");
 define ("EHT_PHOTOS_OPTION_NORMAL", "eht-photos-option-normal");
 define ("EHT_PHOTOS_OPTION_WIDTH", "eht-photos-option-width");
 define ("EHT_PHOTOS_OPTION_EXIF", "eht-photos-option-exif");
-define ("EHT_PHOTOS_OPTION_TABLE_RESULTS", "eht-photos-option-table-results");
+define ("EHT_PHOTOS_OPTION_RESULTS", "eht-photos-option-results");
 define ("EHT_PHOTOS_FIELD_SUBPAGE", "eht-photos-field-subpage");
 define ("EHT_PHOTOS_SUBPAGE_GENERAL", "General options");
 define ("EHT_PHOTOS_SUBPAGE_PHOTOS", "Photos");

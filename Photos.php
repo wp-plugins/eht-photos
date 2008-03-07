@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.5.1
+Version:		1.5.2
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.

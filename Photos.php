@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.5.2
+Version:		1.5.3
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.
@@ -18,6 +18,7 @@ History:		0.1		First release.
 				1.5		Added permissions support, so you can require permissions to view folders and files from the administration options menu, and define groups.
 				1.5.1	Corrected some errors.
 				1.5.2	Corrected some errors (issue #4).
+				1.5.3	Corrected some errors (issue #9).
 
 Setup:
 	1) Install the plugin.
@@ -34,9 +35,9 @@ Where:
    {1} this is the URL of the path to the photo files relative to options "path to images" and "path to thumbs"
    {2} this is a flag to show (yes) or not (no) the path links
 
-Example:
-
-[photos images=Hobbies/Informatica/MisFotos path=yes]
+Examples:
+[photos images=Hobbies/Informatica/MisFotos path=no]
+[photos images= path=yes]
 
 */
 
@@ -45,7 +46,7 @@ define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plug
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5.2");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5.3");
 define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">EHT Photos v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
 define ("EHT_PHOTOS_OPTION_PATH_IMAGES", "eht-photos-option-path-images");
 define ("EHT_PHOTOS_OPTION_PATH_THUMBS", "eht-photos-option-path-thumbs");
@@ -224,9 +225,7 @@ function EHTPhotosFilterTheContent ($content)
 	global $goodPath;
 	
 	$search = "/\[photos\s*images\s*=\s*([^\]]+)\s*path\s*=\s*([^\]]+)\s*\]/i";
-
 	preg_match_all ($search, $content, $results);
-
 	if (is_array ($results))
 	{
 		$optionPathImages = get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
@@ -254,6 +253,8 @@ function EHTPhotosFilterTheContent ($content)
 
 		for ($index = 0; $index < count ($results[0]); $index++)
 		{
+			$text = "\n";
+			
 			$tagImages = EHTPhotosQuitSlashes (trim ($results[1][$index]));
 			$tagPath = (strcasecmp (trim ($results[2][$index]), EHT_PHOTOS_YES) == 0);
 
@@ -267,7 +268,7 @@ function EHTPhotosFilterTheContent ($content)
 						 $tagImages . EHT_PHOTOS_SLASH;
 			$pathImages = $goodPath . EHT_PHOTOS_SLASH . 
 						  $optionPathImages . EHT_PHOTOS_SLASH .
-						  $tagImages;
+						  $tagImages . EHT_PHOTOS_SLASH;
 			$urlThumbs = $goodUrl . EHT_PHOTOS_SLASH . 
 						 $optionPathThumbs . EHT_PHOTOS_SLASH .
 						 $tagImages . EHT_PHOTOS_SLASH;
@@ -275,7 +276,6 @@ function EHTPhotosFilterTheContent ($content)
 						  $optionPathThumbs . EHT_PHOTOS_SLASH .
 						  $tagImages . EHT_PHOTOS_SLASH;
 						  
-			$text = "\n";
 			$text .= "<a name=\"" . EHT_PHOTOS_ANCHOR_GALLERY . "$index\"></a>\n";
 			$text .= "<center><table border=\"0\" align=\"center\">\n";
 			$text .= EHTPhotosPrint ($tagPath,
@@ -315,7 +315,7 @@ function EHTPhotosPrint ($printPath,
 	$currentPath = EHTPhotosGetVar (EHT_PHOTOS_VAR_PATH . $index);
 	$currentMode = EHTPhotosGetVar (EHT_PHOTOS_VAR_MODE . $index);
 	$currentPhoto = EHTPhotosGetVar (EHT_PHOTOS_VAR_PHOTO . $index);
-	
+
 	$files = EHTPhotosListExtensions (EHTPhotosConcatPaths ($pathImages, $currentPath), $currentPath, split (",", EHT_PHOTOS_PHOTO_EXTENSIONS));
 	
 	if ($printPath)

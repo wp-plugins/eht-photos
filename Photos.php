@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.5.3
+Version:		1.6
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.
@@ -19,6 +19,7 @@ History:		0.1		First release.
 				1.5.1	Corrected some errors.
 				1.5.2	Corrected some errors (issue #4).
 				1.5.3	Corrected some errors (issue #9).
+				1.6		Added widget for random photos (issue #13). Added widget for most viewed photos (issue #12).
 
 Setup:
 	1) Install the plugin.
@@ -26,6 +27,11 @@ Setup:
 	3) Press "Install DB".
 	4) Configure the plugin if you need.
 	5) Insert the plugin tags where you need it (see below the plugin sintax).
+	6) Add the Random Photo widget (optional) into the Presentation menu.
+
+Upgrade:
+	1) Go to the admin menus, and in "Options" panel, select "EHT Photos".
+	2) Press "Install DB" (this will upgrade database if needed).
 
 Plugin sintax:
 
@@ -41,27 +47,52 @@ Examples:
 
 */
 
+define ("EHT_PHOTOS_PLUGIN_NAME", "eht-photos");
+define ("EHT_PHOTOS_PLUGIN_TITLE", "EHT Photos");
 define ("EHT_PHOTOS_SESSION_DOMAIN", "eht-photos");
 define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.5.3");
-define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">EHT Photos v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
-define ("EHT_PHOTOS_OPTION_PATH_IMAGES", "eht-photos-option-path-images");
-define ("EHT_PHOTOS_OPTION_PATH_THUMBS", "eht-photos-option-path-thumbs");
-define ("EHT_PHOTOS_OPTION_THUMB", "eht-photos-option-thumb");
-define ("EHT_PHOTOS_OPTION_NORMAL", "eht-photos-option-normal");
-define ("EHT_PHOTOS_OPTION_WIDTH", "eht-photos-option-width");
-define ("EHT_PHOTOS_OPTION_EXIF", "eht-photos-option-exif");
-define ("EHT_PHOTOS_OPTION_RESULTS", "eht-photos-option-results");
-define ("EHT_PHOTOS_FIELD_SUBPAGE", "eht-photos-field-subpage");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.6");
+define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
+define ("EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION", "<a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio</a>");
+define ("EHT_PHOTOS_OPTION_PATH_IMAGES", EHT_PHOTOS_PLUGIN_NAME . "-option-path-images");
+define ("EHT_PHOTOS_OPTION_PATH_THUMBS", EHT_PHOTOS_PLUGIN_NAME . "-option-path-thumbs");
+define ("EHT_PHOTOS_OPTION_THUMB", EHT_PHOTOS_PLUGIN_NAME . "-option-thumb");
+define ("EHT_PHOTOS_OPTION_NORMAL", EHT_PHOTOS_PLUGIN_NAME . "-option-normal");
+define ("EHT_PHOTOS_OPTION_WIDTH", EHT_PHOTOS_PLUGIN_NAME . "-option-width");
+define ("EHT_PHOTOS_OPTION_EXIF", EHT_PHOTOS_PLUGIN_NAME . "-option-exif");
+define ("EHT_PHOTOS_OPTION_RESULTS", EHT_PHOTOS_PLUGIN_NAME . "-option-results");
+define ("EHT_PHOTOS_WIDGET_RANDOM_NAME", EHT_PHOTOS_PLUGIN_NAME . "-widget-random");
+define ("EHT_PHOTOS_WIDGET_RANDOM_CAPTION", "Random Photos (" . EHT_PHOTOS_PLUGIN_TITLE . ")");
+define ("EHT_PHOTOS_WIDGET_RANDOM_TITLE", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-title");
+define ("EHT_PHOTOS_WIDGET_RANDOM_TITLE_DEFAULT", "Random photos");
+define ("EHT_PHOTOS_WIDGET_RANDOM_THUMB", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-thumb");
+define ("EHT_PHOTOS_WIDGET_RANDOM_THUMB_DEFAULT", get_option (EHT_PHOTOS_OPTION_THUMB));
+define ("EHT_PHOTOS_WIDGET_RANDOM_COUNT", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-count");
+define ("EHT_PHOTOS_WIDGET_RANDOM_COUNT_DEFAULT", 3);
+define ("EHT_PHOTOS_WIDGET_RANDOM_PAGE", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-page");
+define ("EHT_PHOTOS_WIDGET_RANDOM_SUBMIT", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-submit");
+define ("EHT_PHOTOS_WIDGET_RANDOM_MAX_ATTEMPTS", 5);
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME", EHT_PHOTOS_PLUGIN_NAME . "-widget-most-viewed");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_CAPTION", "Most Viewed Photos (" . EHT_PHOTOS_PLUGIN_TITLE . ")");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-title");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE_DEFAULT", "Most viewed photos");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-thumb");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB_DEFAULT", get_option (EHT_PHOTOS_OPTION_THUMB));
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-count");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT_DEFAULT", 3);
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-page");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-submit");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_MAX_ATTEMPTS", 5);
+define ("EHT_PHOTOS_FIELD_SUBPAGE", EHT_PHOTOS_PLUGIN_NAME . "-field-subpage");
 define ("EHT_PHOTOS_SUBPAGE_GENERAL", "General options");
 define ("EHT_PHOTOS_SUBPAGE_PHOTOS", "Photos");
 define ("EHT_PHOTOS_SUBPAGE_GALLERY", "Gallery");
 define ("EHT_PHOTOS_SUBPAGE_GROUPS", "Groups");
 define ("EHT_PHOTOS_SUBPAGE_USERS", "Users");
-define ("EHT_PHOTOS_FIELD_ACTION", "eht-photos-field-action");
+define ("EHT_PHOTOS_FIELD_ACTION", EHT_PHOTOS_PLUGIN_NAME . "-field-action");
 define ("EHT_PHOTOS_ACTION_INSTALL", "Install DB");
 define ("EHT_PHOTOS_ACTION_UNINSTALL", "Uninstall DB");
 define ("EHT_PHOTOS_ACTION_UPDATE", "Update");
@@ -69,20 +100,20 @@ define ("EHT_PHOTOS_ACTION_RESET", "Reset");
 define ("EHT_PHOTOS_ACTION_RESET_PHOTOS", "Reset photos");
 define ("EHT_PHOTOS_ACTION_CREATE", "Create");
 define ("EHT_PHOTOS_ACTION_EDIT", "Edit");
-define ("EHT_PHOTOS_FIELD_ORDER", "eht-photos-field-order");
+define ("EHT_PHOTOS_FIELD_ORDER", EHT_PHOTOS_PLUGIN_NAME . "-field-order");
 define ("EHT_PHOTOS_ORDER_ID", "id");
 define ("EHT_PHOTOS_ORDER_MD5", "md5");
 define ("EHT_PHOTOS_ORDER_NAME", "name");
 define ("EHT_PHOTOS_ORDER_VIEWS", "views");
 define ("EHT_PHOTOS_ORDER_PATH", "path");
-define ("EHT_PHOTOS_FIELD_DIRECTION", "eht-photos-field-direction");
-define ("EHT_PHOTOS_FIELD_ID", "eht-photos-field-id");
-define ("EHT_PHOTOS_FIELD_OFFSET", "eht-photos-field-offset");
-define ("EHT_PHOTOS_FIELD_NAME", "eht-photos-field-name");
-define ("EHT_PHOTOS_FIELD_DESCRIPTION", "eht-photos-field-description");
-define ("EHT_PHOTOS_FIELD_USER", "eht-photos-field-user-%d-%d");
-define ("EHT_PHOTOS_FIELD_GROUP", "eht-photos-field-group-");
-define ("EHT_PHOTOS_FIELD_PATH", "eht-photos-field-path");
+define ("EHT_PHOTOS_FIELD_DIRECTION", EHT_PHOTOS_PLUGIN_NAME . "-field-direction");
+define ("EHT_PHOTOS_FIELD_ID", EHT_PHOTOS_PLUGIN_NAME . "-field-id");
+define ("EHT_PHOTOS_FIELD_OFFSET", EHT_PHOTOS_PLUGIN_NAME . "-field-offset");
+define ("EHT_PHOTOS_FIELD_NAME", EHT_PHOTOS_PLUGIN_NAME . "-field-name");
+define ("EHT_PHOTOS_FIELD_DESCRIPTION", EHT_PHOTOS_PLUGIN_NAME . "-field-description");
+define ("EHT_PHOTOS_FIELD_USER", EHT_PHOTOS_PLUGIN_NAME . "-field-user-%d-%d");
+define ("EHT_PHOTOS_FIELD_GROUP", EHT_PHOTOS_PLUGIN_NAME . "-field-group-");
+define ("EHT_PHOTOS_FIELD_PATH", EHT_PHOTOS_PLUGIN_NAME . "-field-path");
 define ("EHT_PHOTOS_YES", "yes");
 define ("EHT_PHOTOS_NO", "no");
 define ("EHT_PHOTOS_DEFAULT_THUMB", 170);
@@ -141,8 +172,12 @@ define ("EHT_PHOTOS_TABLE_PHOTO_CREATE",
 		);");
 define ("EHT_PHOTOS_TABLE_PHOTO_SELECT",
 		"SELECT * FROM " . EHT_PHOTOS_TABLE_PHOTO . " WHERE md5 = \"%s\";");
-define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL",
+define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL_PAGINABLE",
 		"SELECT * FROM " . EHT_PHOTOS_TABLE_PHOTO . " ORDER BY %s %s LIMIT %d, %d;");
+define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL",
+		"SELECT id, path, views FROM " . EHT_PHOTOS_TABLE_PHOTO . ";");
+define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_MOST_VIEWED",
+		"SELECT id, path, views FROM " . EHT_PHOTOS_TABLE_PHOTO . " ORDER BY views DESC;");
 define ("EHT_PHOTOS_TABLE_PHOTO_COUNT",
 		"SELECT COUNT(id) AS count FROM " . EHT_PHOTOS_TABLE_PHOTO);
 define ("EHT_PHOTOS_TABLE_PHOTO_INSERT",
@@ -151,6 +186,8 @@ define ("EHT_PHOTOS_TABLE_PHOTO_UPDATE_VIEWS",
 		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET views = %d WHERE id = %d;");
 define ("EHT_PHOTOS_TABLE_PHOTO_UPDATE_PATH",
 		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET path = \"%s\" WHERE id = %d;");
+define ("EHT_PHOTOS_TABLE_PHOTO_CLEAN_PATH",
+		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET path = REPLACE (path, \"//\", \"/\"");
 define ("EHT_PHOTOS_TABLE_COMMENT_CREATE",
 		"CREATE TABLE " . EHT_PHOTOS_TABLE_COMMENT . " (
 		  id INT NOT NULL AUTO_INCREMENT,
@@ -716,7 +753,7 @@ function EHTPhotosPrintThumb ($type,
 									$pathThumbs . $currentPath,
 									$name,
 									$thumbSize);
-		$fullPath = $pathImages . $currentPath . $name;
+		$fullPath = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($pathImages, $currentPath), $name);
 		$md5 = md5_file ($fullPath);
 		$description = EHTPhotosGetDescription ($md5, true, $name, $fullPath);
 	}
@@ -944,7 +981,7 @@ function EHTPhotosGetDescription ($md5,
 		{
 			$text .= "$name<br>\n";
 		}
-		$text .= "<small>($views views)</small>";
+		$text .= "<small>($views view" . (($views == 1) ? "" : "s") . ")</small>";
 	}
 	
 	return ($text);
@@ -1076,19 +1113,21 @@ function EHTPhotosCreateFolder ($folder)
 }
 
 function EHTPhotosQuitSlashes (&$path,
-							   $onlyEnd = false)
+							   $onlyEnd = false,
+							   $onlyBegin = false)
 {
 	$size = strlen ($path);
 	if ($size > 0)
 	{
-		if ((!$onlyEnd) && ($path[0] == EHT_PHOTOS_SLASH))
+		while ((!$onlyEnd) && ($size > 0) && ($path[0] == EHT_PHOTOS_SLASH))
 		{
 			$path = substr ($path, 1);
 			$size--;
 		}
-		if ($path[$size - 1] == EHT_PHOTOS_SLASH)
+		while ((!$onlyBegin) && ($size > 0) && ($path[$size - 1] == EHT_PHOTOS_SLASH))
 		{
 			$path = substr ($path, 0, ($size - 1));
+			$size--;
 		}
 	}
 	
@@ -1111,6 +1150,22 @@ function EHTPhotosExtractExtension ($path,
 	}
 }
 
+function EHTPhotosExtractFile ($all,
+							   &$path,
+							   &$file)
+{
+	if (($position = strrpos ($all, "/")) === false)
+	{
+		$path = $all;
+		$file = "";
+	}
+	else
+	{
+		$path = substr ($all, 0, $position);
+		$file = substr ($all, $position + 1);
+	}
+}
+
 function EHTPhotosTextVertical ($text)
 {
 	$vertical = "";
@@ -1129,28 +1184,13 @@ function EHTPhotosTextVertical ($text)
 
 function EHTPhotosConcatPaths ($path1, $path2)
 {
-	$length1 = strlen ($path1);
-	$length2 = strlen ($path2);
-	if ($length1 > 0)
-	{
-		$path .= $path1;
-		if (($path1[$length1 - 1] != EHT_PHOTOS_SLASH) && ($length2 > 0))
-		{
-			$path .= EHT_PHOTOS_SLASH;
-		}
-	}
-	if ($length2 > 0)
-	{
-		if ($path2[0] == EHT_PHOTOS_SLASH)
-		{
-			$path .= substr ($path2, 1, $length2 - 1);
-		}
-		else
-		{
-			$path .= $path2;
-		}
-	}
-	
+	$cleanedPath1 = $path1;
+	EHTPhotosQuitSlashes ($cleanedPath1, true, false);
+	$cleanedPath2 = $path2;
+	EHTPhotosQuitSlashes ($cleanedPath2, false, true);
+
+	$path = $cleanedPath1 . EHT_PHOTOS_SLASH . $cleanedPath2;
+
 	return ($path);
 }
 

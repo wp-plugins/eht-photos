@@ -1,6 +1,7 @@
 <?php
 
 add_action ("admin_menu", "EHTPhotosAdminAddPages");
+add_action ("init", "EHTPhotosRegisterWidgets");
 
 require_once (ABSPATH . "wp-admin/includes/upgrade.php");
 
@@ -14,6 +15,373 @@ function EHTPhotosAdminAddPages ()
 			add_submenu_page('options-general.php', $page_title, $menu_title, $access_level, $file, $function);
 		}
 	}
+}
+
+function EHTPhotosRegisterWidgets ()
+{
+	if (function_exists ("register_sidebar_widget")) :
+
+	function EHTPhotosWidgetRandom ($arguments)
+	{
+		global $wpdb;
+		
+		extract ($arguments);
+		
+		$title = get_option (EHT_PHOTOS_WIDGET_RANDOM_TITLE);
+		$title = ($title != "") ? $title : EHT_PHOTOS_DEFAULT_WIDGET_RANDOM_TITLE;
+		$thumb = get_option (EHT_PHOTOS_WIDGET_RANDOM_THUMB);
+		$thumb = (($thumb == "") ? EHT_PHOTOS_WIDGET_RANDOM_THUMB_DEFAULT : $thumb);
+		$count = get_option (EHT_PHOTOS_WIDGET_RANDOM_COUNT);
+		$count = ($count != "") ? $count : EHT_PHOTOS_DEFAULT_WIDGET_RANDOM_COUNT;
+		$text = $before_widget .
+				$before_title . $title . $after_title . "\n" .
+				"<div align=\"center\">\n" . 
+				"<small>\n" .
+				EHTPhotosWidgetPhotos ($count, $thumb, true) .
+				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
+				"</small>\n" .
+				"</div>\n" .
+				$after_widget;
+				
+		echo $text;
+	}
+	
+	function EHTPhotosWidgetRandomControl ()
+	{
+		$title = $newTitle = get_option (EHT_PHOTOS_WIDGET_RANDOM_TITLE);
+		if ($_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT])
+		{
+			$newTitle = $_POST[EHT_PHOTOS_WIDGET_RANDOM_TITLE];
+			if ($newTitle == "")
+			{
+				$newTitle = EHT_PHOTOS_WIDGET_RANDOM_TITLE_DEFAULT;
+			}
+		}
+		if ($title != $newTitle)
+		{
+			$title = $newTitle;
+			update_option (EHT_PHOTOS_WIDGET_RANDOM_TITLE, $title);
+		}
+		if (($title == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT]))
+		{
+			$title = EHT_PHOTOS_WIDGET_RANDOM_TITLE_DEFAULT;
+		}
+		$title = htmlspecialchars ($title, ENT_QUOTES);
+		
+		$thumb = $newThumb = get_option (EHT_PHOTOS_WIDGET_RANDOM_THUMB);
+		if ($_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT])
+		{
+			$newThumb = $_POST[EHT_PHOTOS_WIDGET_RANDOM_THUMB];
+			if ($newThumb == "")
+			{
+				$newThumb = EHT_PHOTOS_WIDGET_RANDOM_THUMB_DEFAULT;
+			}
+		}
+		if ($thumb != $newThumb)
+		{
+			$thumb = $newThumb;
+			update_option (EHT_PHOTOS_WIDGET_RANDOM_THUMB, $thumb);
+		}
+		if (($thumb == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT]))
+		{
+			$thumb = EHT_PHOTOS_WIDGET_RANDOM_THUMB_DEFAULT;
+		}
+		$thumb = htmlspecialchars ($thumb, ENT_QUOTES);
+		
+		$count = $newCount = get_option (EHT_PHOTOS_WIDGET_RANDOM_COUNT);
+		if ($_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT])
+		{
+			$newCount = $_POST[EHT_PHOTOS_WIDGET_RANDOM_COUNT];
+			if ($newCount == "")
+			{
+				$newCount = EHT_PHOTOS_WIDGET_RANDOM_COUNT_DEFAULT;
+			}
+		}
+		if ($count != $newCount)
+		{
+			$count = $newCount;
+			update_option (EHT_PHOTOS_WIDGET_RANDOM_COUNT, $count);
+		}
+		if (($count == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT]))
+		{
+			$count = EHT_PHOTOS_WIDGET_RANDOM_COUNT_DEFAULT;
+		}
+		$count = htmlspecialchars ($count, ENT_QUOTES);
+		
+		$page = $newPage = get_option (EHT_PHOTOS_WIDGET_RANDOM_PAGE);
+		if ($_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT])
+		{
+			$newPage = $_POST[EHT_PHOTOS_WIDGET_RANDOM_PAGE];
+		}
+		if ($page != $newPage)
+		{
+			$page = $newPage;
+			update_option (EHT_PHOTOS_WIDGET_RANDOM_PAGE, $page);
+		}
+		$page = htmlspecialchars ($page, ENT_QUOTES);
+		
+		echo "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_RANDOM_TITLE . "\">Title<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_TITLE . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_TITLE . "\" type=\"text\" value=\"$title\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_RANDOM_THUMB . "\">Thumbnail size<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_THUMB . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_THUMB . "\" type=\"text\" value=\"$thumb\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_RANDOM_COUNT . "\">Count of photos to show<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_COUNT . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_COUNT . "\" type=\"text\" value=\"$count\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_RANDOM_PAGE . "\">Photos page to link to<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_PAGE . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_PAGE . "\" type=\"text\" value=\"$page\" /></label>\n" .
+			 "</p>\n" .
+			 "<input type=\"hidden\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_SUBMIT . "\"" .
+			 " name=\"". EHT_PHOTOS_WIDGET_RANDOM_SUBMIT . "\" value=\"1\" />\n";
+	}
+
+	register_sidebar_widget (EHT_PHOTOS_WIDGET_RANDOM_CAPTION, "EHTPhotosWidgetRandom", null, EHT_PHOTOS_WIDGET_RANDOM_NAME);
+	register_widget_control (EHT_PHOTOS_WIDGET_RANDOM_CAPTION, "EHTPhotosWidgetRandomControl", 300, 220, EHT_PHOTOS_WIDGET_RANDOM_NAME);
+	
+	function EHTPhotosWidgetMostViewed ($arguments)
+	{
+		global $wpdb;
+		
+		extract ($arguments);
+		
+		$title = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE);
+		$title = ($title != "") ? $title : EHT_PHOTOS_DEFAULT_WIDGET_MOST_VIEWED_TITLE;
+		$thumb = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB);
+		$thumb = (($thumb == "") ? EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB_DEFAULT : $thumb);
+		$count = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT);
+		$count = ($count != "") ? $count : EHT_PHOTOS_DEFAULT_WIDGET_MOST_VIEWED_COUNT;
+		$text = $before_widget .
+				$before_title . $title . $after_title . "\n" .
+				"<div align=\"center\">\n" . 
+				"<small>\n" .
+				EHTPhotosWidgetPhotos ($count, $thumb, false) .
+				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
+				"</small>\n" .
+				"</div>\n" .
+				$after_widget;
+				
+		echo $text;
+	}
+	
+	function EHTPhotosWidgetMostViewedControl ()
+	{
+		$title = $newTitle = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE);
+		if ($_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT])
+		{
+			$newTitle = $_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE];
+			if ($newTitle == "")
+			{
+				$newTitle = EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE_DEFAULT;
+			}
+		}
+		if ($title != $newTitle)
+		{
+			$title = $newTitle;
+			update_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE, $title);
+		}
+		if (($title == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT]))
+		{
+			$title = EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE_DEFAULT;
+		}
+		$title = htmlspecialchars ($title, ENT_QUOTES);
+
+		$thumb = $newThumb = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB);
+		if ($_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT])
+		{
+			$newThumb = $_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB];
+			if ($newThumb == "")
+			{
+				$newThumb = EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB_DEFAULT;
+			}
+		}
+		if ($thumb != $newThumb)
+		{
+			$thumb = $newThumb;
+			update_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB, $thumb);
+		}
+		if (($thumb == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT]))
+		{
+			$thumb = EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB_DEFAULT;
+		}
+		$thumb = htmlspecialchars ($thumb, ENT_QUOTES);
+		
+		$count = $newCount = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT);
+		if ($_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT])
+		{
+			$newCount = $_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT];
+			if ($newCount == "")
+			{
+				$newCount = EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT_DEFAULT;
+			}
+		}
+		if ($count != $newCount)
+		{
+			$count = $newCount;
+			update_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT, $count);
+		}
+		if (($count == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT]))
+		{
+			$count = EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT_DEFAULT;
+		}
+		$count = htmlspecialchars ($count, ENT_QUOTES);
+		
+		$page = $newPage = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE);
+		if ($_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT])
+		{
+			$newPage = $_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE];
+		}
+		if ($page != $newPage)
+		{
+			$page = $newPage;
+			update_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE, $page);
+		}
+		$page = htmlspecialchars ($page, ENT_QUOTES);
+		
+		echo "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE . "\">Title<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_TITLE . "\" type=\"text\" value=\"$title\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB . "\">Thumbnail size<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB . "\" type=\"text\" value=\"$thumb\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT . "\">Count of photos to show<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT . "\" type=\"text\" value=\"$count\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE . "\">Photos page to link to<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE . "\" type=\"text\" value=\"$page\" /></label>\n" .
+			 "</p>\n" .
+			 "<input type=\"hidden\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT . "\"" .
+			 " name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT . "\" value=\"1\" />\n";
+	}
+
+	register_sidebar_widget (EHT_PHOTOS_WIDGET_MOST_VIEWED_CAPTION, "EHTPhotosWidgetMostViewed", null, EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME);
+	register_widget_control (EHT_PHOTOS_WIDGET_MOST_VIEWED_CAPTION, "EHTPhotosWidgetMostViewedControl", 300, 220, EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME);
+	
+	endif;
+}
+
+function EHTPhotosWidgetPhotos ($count,
+								$width,
+								$random)
+{
+	global $wpdb, $user_ID;
+	
+	$text = "";
+	
+	$sql = sprintf ($random ? EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL : EHT_PHOTOS_TABLE_PHOTO_SELECT_MOST_VIEWED);
+	$photos = $wpdb->get_results ($sql);
+	$countPhotos = count ($photos);
+
+	$countAchieved = 0;
+	$attempts = 0;
+	$maxAttempts = $count * EHT_PHOTOS_WIDGET_RANDOM_MAX_ATTEMPTS;
+	$selecteds = array ();
+	$page = get_option (EHT_PHOTOS_WIDGET_RANDOM_PAGE);
+
+	$groups = array ();
+	$sql = sprintf (EHT_PHOTOS_TABLE_USER_SELECT_GROUPS, $user_ID);
+	$rows = $wpdb->get_results ($sql);
+	foreach ($rows as $row)
+	{
+		$groups[$row->id] = $row->name;
+	}
+	
+	$path = $_SERVER["DOCUMENT_ROOT"];
+	$optionImages = get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
+	$basePath = EHTPhotosConcatPaths (EHTPhotosQuitSlashes ($path, true), EHTPhotosQuitSlashes ($optionImages));
+	$url = get_option ("siteurl");
+	$optionThumbs = get_option (EHT_PHOTOS_OPTION_PATH_THUMBS);
+	$baseUrl = EHTPhotosConcatPaths (EHTPhotosQuitSlashes ($url, true), EHTPhotosQuitSlashes ($optionThumbs));
+	$commonPath = $path . EHT_PHOTOS_SLASH . get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
+	$lengthCommonPath = strlen ($commonPath);
+	
+	$text .= "<table>";
+	
+	while (($countAchieved < $count) &&
+		   ($attempts <= $maxAttempts))
+	{
+		$photo = $photos[$random ? rand (0, $countPhotos - 1) : $attempts];
+		$countSelecteds = count ($selecteds);
+		for ($i = 0, $goOn = true; ($i < $countSelecteds) && $goOn; $i++)
+		{
+			$goOn = ($selecteds[$i]["id"] != $photo->id);
+		}
+		if ($goOn)
+		{
+			$relativePath = substr ($photo->path, $lengthCommonPath);
+			
+			$permissions = array ();
+			EHTPhotosGetFullPermissions ($relativePath, $permissions);
+	    	if (count ($permissions) > 0)
+	    	{
+	    		$goOn = false;
+	    		foreach ($groups as $group)
+	    		{
+	    			foreach ($permissions as $permission)
+	    			{
+	    				if ($group->id == $permission->id)
+	    				{
+	    					$goOn = true;
+	    				}
+	    			}
+	    		}
+	    	}
+			if ($goOn)
+			{
+				EHTPhotosExtractFile ($relativePath, $path, $filename);
+				$path .= EHT_PHOTOS_SLASH;
+				EHTPhotosExtractExtension ($relativePath, $file, $extension);
+				$relativePath = $file . "_" . get_option (EHT_PHOTOS_OPTION_THUMB) . "." . $extension;
+
+				$selecteds[$countAchieved]["id"] = $photo->id;
+				$selecteds[$countAchieved]["path"] = EHTPhotosConcatPaths ($baseUrl, $relativePath);
+				$selecteds[$countAchieved]["views"] = $photo->views;
+				
+				$text .= "<tr><td align=\"center\">";
+				if ($page != "")
+				{
+					$text .= "<a href=\"$page?path0=$path&mode0=normal&photo0=$filename\">";
+				}
+				$text .= "<img src=\"" . $selecteds[$countAchieved]["path"] . "\">";
+				if ($page != "")
+				{
+					$text .= "</a>";
+				}
+				$text .= "<br>(" . $selecteds[$countAchieved]["views"] . 
+						 " view" . (($selecteds[$countAchieved]["views"] == 1) ? "" : "s") . ")";
+				$text .= "</td></tr>";
+
+				$countAchieved++;
+			}
+		}
+		$attempts++;
+	}
+	
+	$text .= "</table>";
+	
+	return ($text);
 }
 
 function EHTPhotosAdminOptions ()
@@ -301,7 +669,7 @@ function EHTPhotosAdminSubpagePhotos ($href)
 	$optionThumbs = get_option (EHT_PHOTOS_OPTION_PATH_THUMBS);
 	$baseUrl = EHTPhotosQuitSlashes ($url, true) . EHT_PHOTOS_SLASH . EHTPhotosQuitSlashes ($optionThumbs);
 	
-	$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL, $order, $direction, $offset, $size);
+	$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL_PAGINABLE, $order, $direction, $offset, $size);
 	$rows = $wpdb->get_results ($sql);
 	echo "<table>\n" .
 		 "   <tr>\n" .
@@ -666,6 +1034,9 @@ function EHTPhotosInstall (&$message)
 					 EHT_PHOTOS_TABLE_USER => EHT_PHOTOS_TABLE_USER_CREATE,
 					 EHT_PHOTOS_TABLE_PERMISSION => EHT_PHOTOS_TABLE_PERMISSION_CREATE);
 	$values = array ();
+	$others = array (EHT_PHOTOS_TABLE_PHOTO_CLEAN_PATH,
+					 EHT_PHOTOS_TABLE_PHOTO_CLEAN_PATH,
+					 EHT_PHOTOS_TABLE_PHOTO_CLEAN_PATH);
 	
 	$ok = true;
 	$message = "";
@@ -688,6 +1059,10 @@ function EHTPhotosInstall (&$message)
 		foreach ($values as $table => $query)
 		{
 			$wpdb->query ($query);
+		}
+		foreach ($others as $other => $query)
+		{
+			$wpdb->query ($other);
 		}
 	}
 	

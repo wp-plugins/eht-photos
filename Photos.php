@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.6
+Version:		1.6.5
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.
@@ -20,6 +20,7 @@ History:		0.1		First release.
 				1.5.2	Corrected some errors (issue #4).
 				1.5.3	Corrected some errors (issue #9).
 				1.6		Added widget for random photos (issue #13). Added widget for most viewed photos (issue #12).
+				1.6.5	The widgets are tabulable, and the number of columns is configurable (issue #18).
 
 Setup:
 	1) Install the plugin.
@@ -54,7 +55,7 @@ define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plug
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.6");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.6.5");
 define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
 define ("EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION", "<a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio</a>");
 define ("EHT_PHOTOS_OPTION_PATH_IMAGES", EHT_PHOTOS_PLUGIN_NAME . "-option-path-images");
@@ -72,6 +73,8 @@ define ("EHT_PHOTOS_WIDGET_RANDOM_THUMB", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-thum
 define ("EHT_PHOTOS_WIDGET_RANDOM_THUMB_DEFAULT", get_option (EHT_PHOTOS_OPTION_THUMB));
 define ("EHT_PHOTOS_WIDGET_RANDOM_COUNT", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-count");
 define ("EHT_PHOTOS_WIDGET_RANDOM_COUNT_DEFAULT", 3);
+define ("EHT_PHOTOS_WIDGET_RANDOM_COLUMNS", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-columns");
+define ("EHT_PHOTOS_WIDGET_RANDOM_COLUMNS_DEFAULT", 1);
 define ("EHT_PHOTOS_WIDGET_RANDOM_PAGE", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-page");
 define ("EHT_PHOTOS_WIDGET_RANDOM_SUBMIT", EHT_PHOTOS_WIDGET_RANDOM_NAME . "-submit");
 define ("EHT_PHOTOS_WIDGET_RANDOM_MAX_ATTEMPTS", 5);
@@ -83,6 +86,8 @@ define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAM
 define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB_DEFAULT", get_option (EHT_PHOTOS_OPTION_THUMB));
 define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-count");
 define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT_DEFAULT", 3);
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-columns");
+define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS_DEFAULT", 1);
 define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-page");
 define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT", EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME . "-submit");
 define ("EHT_PHOTOS_WIDGET_MOST_VIEWED_MAX_ATTEMPTS", 5);
@@ -550,8 +555,7 @@ function EHTPhotosPrintNormal ($name,
 	$baseLink = "<a href=\"$currentUrl".
 				EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($currentPath) .
 				"#" . EHT_PHOTOS_ANCHOR_GALLERY . "$index\">[Thumbnails]</a>";
-	$normal = EHTPhotosGetThumb ($urlImages . $currentPath,
-								 $pathImages . $currentPath,
+	$normal = EHTPhotosGetThumb ($pathImages . $currentPath,
 								 $urlThumbs . $currentPath,
 								 $pathThumbs . $currentPath,
 								 $name,
@@ -747,8 +751,7 @@ function EHTPhotosPrintThumb ($type,
 
 	if ($type == EHT_PHOTOS_THUMB_FILE)
 	{
-		$thumb = EHTPhotosGetThumb ($urlImages . $currentPath,
-									$pathImages . $currentPath,
+		$thumb = EHTPhotosGetThumb ($pathImages . $currentPath,
 									$urlThumbs . $currentPath,
 									$pathThumbs . $currentPath,
 									$name,
@@ -759,8 +762,7 @@ function EHTPhotosPrintThumb ($type,
 	}
 	else if ($type == EHT_PHOTOS_THUMB_FOLDER)
 	{
-		$thumb = EHTPhotosGetThumb (EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES,
-									EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES,
+		$thumb = EHTPhotosGetThumb (EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES,
 									EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES,
 									EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES,
 									EHT_PHOTOS_IMAGE_FOLDER,
@@ -855,16 +857,15 @@ function EHTPhotosPrintThumb ($type,
 	return ($text);
 }
 
-function EHTPhotosGetThumb ($urlImage,
-							$pathImage,
+function EHTPhotosGetThumb ($pathImage,
 							$urlThumb,
 							$pathThumb,
 							$name,
 							$thumbSize)
 {
 	EHTPhotosExtractExtension ($name, $file, $extension);
-	$imageName = $pathImage . $name;
-	$thumbName = $pathThumb . $file . "_" . $thumbSize . "." . $extension;
+	$imageName = EHTPhotosConcatPaths ($pathImage, $name);
+	$thumbName = EHTPhotosConcatPaths ($pathThumb, $file . "_" . $thumbSize . "." . $extension);
 	$thumbUrlName = $urlThumb . $file . "_" . $thumbSize . "." . $extension;
 	if (file_exists ($imageName) && (!file_exists ($thumbName)))
 	{

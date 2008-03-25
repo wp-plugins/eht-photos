@@ -33,11 +33,13 @@ function EHTPhotosRegisterWidgets ()
 		$thumb = (($thumb == "") ? EHT_PHOTOS_WIDGET_RANDOM_THUMB_DEFAULT : $thumb);
 		$count = get_option (EHT_PHOTOS_WIDGET_RANDOM_COUNT);
 		$count = ($count != "") ? $count : EHT_PHOTOS_DEFAULT_WIDGET_RANDOM_COUNT;
+		$columns = get_option (EHT_PHOTOS_WIDGET_RANDOM_COLUMNS);
+		$columns = ($columns != "") ? $columns : EHT_PHOTOS_WIDGET_RANDOM_COLUMNS_DEFAULT;
 		$text = $before_widget .
 				$before_title . $title . $after_title . "\n" .
 				"<div align=\"center\">\n" . 
 				"<small>\n" .
-				EHTPhotosWidgetPhotos ($count, $thumb, true) .
+				EHTPhotosWidgetPhotos ($count, $columns, $thumb, true) .
 				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
 				"</small>\n" .
 				"</div>\n" .
@@ -111,6 +113,27 @@ function EHTPhotosRegisterWidgets ()
 		}
 		$count = htmlspecialchars ($count, ENT_QUOTES);
 		
+		$columns = $newColumns = get_option (EHT_PHOTOS_WIDGET_RANDOM_COLUMNS);
+		if ($_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT])
+		{
+			$newColumns = $_POST[EHT_PHOTOS_WIDGET_RANDOM_COLUMNS];
+			if ($newColumns == "")
+			{
+				$newColumns = EHT_PHOTOS_WIDGET_RANDOM_COLUMNS_DEFAULT;
+			}
+		}
+		if ($columns != $newColumns)
+		{
+			$columns = $newColumns;
+			update_option (EHT_PHOTOS_WIDGET_RANDOM_COLUMNS, $columns);
+		}
+		if (($columns == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT]))
+		{
+			$columns = EHT_PHOTOS_WIDGET_RANDOM_COLUMNS_DEFAULT;
+		}
+		$columns = htmlspecialchars ($columns, ENT_QUOTES);
+		
 		$page = $newPage = get_option (EHT_PHOTOS_WIDGET_RANDOM_PAGE);
 		if ($_POST[EHT_PHOTOS_WIDGET_RANDOM_SUBMIT])
 		{
@@ -139,6 +162,11 @@ function EHTPhotosRegisterWidgets ()
 			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_COUNT . "\" type=\"text\" value=\"$count\" /></label>\n" .
 			 "</p>\n" .
 			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_RANDOM_COLUMNS . "\">Columns to show<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_COLUMNS . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_COLUMNS . "\" type=\"text\" value=\"$columns\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
 			 "   <label for=\"" . EHT_PHOTOS_WIDGET_RANDOM_PAGE . "\">Photos page to link to<br>\n" .
 			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_RANDOM_PAGE . "\"".
 			 "    name=\"". EHT_PHOTOS_WIDGET_RANDOM_PAGE . "\" type=\"text\" value=\"$page\" /></label>\n" .
@@ -148,7 +176,7 @@ function EHTPhotosRegisterWidgets ()
 	}
 
 	register_sidebar_widget (EHT_PHOTOS_WIDGET_RANDOM_CAPTION, "EHTPhotosWidgetRandom", null, EHT_PHOTOS_WIDGET_RANDOM_NAME);
-	register_widget_control (EHT_PHOTOS_WIDGET_RANDOM_CAPTION, "EHTPhotosWidgetRandomControl", 300, 220, EHT_PHOTOS_WIDGET_RANDOM_NAME);
+	register_widget_control (EHT_PHOTOS_WIDGET_RANDOM_CAPTION, "EHTPhotosWidgetRandomControl", 300, 270, EHT_PHOTOS_WIDGET_RANDOM_NAME);
 	
 	function EHTPhotosWidgetMostViewed ($arguments)
 	{
@@ -162,11 +190,13 @@ function EHTPhotosRegisterWidgets ()
 		$thumb = (($thumb == "") ? EHT_PHOTOS_WIDGET_MOST_VIEWED_THUMB_DEFAULT : $thumb);
 		$count = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT);
 		$count = ($count != "") ? $count : EHT_PHOTOS_DEFAULT_WIDGET_MOST_VIEWED_COUNT;
+		$columns = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS);
+		$columns = ($columns != "") ? $columns : EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS_DEFAULT;
 		$text = $before_widget .
 				$before_title . $title . $after_title . "\n" .
 				"<div align=\"center\">\n" . 
 				"<small>\n" .
-				EHTPhotosWidgetPhotos ($count, $thumb, false) .
+				EHTPhotosWidgetPhotos ($count, $columns, $thumb, false) .
 				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
 				"</small>\n" .
 				"</div>\n" .
@@ -240,6 +270,27 @@ function EHTPhotosRegisterWidgets ()
 		}
 		$count = htmlspecialchars ($count, ENT_QUOTES);
 		
+		$columns = $newColumns = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS);
+		if ($_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT])
+		{
+			$newColumns = $_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS];
+			if ($newColumns == "")
+			{
+				$newColumns = EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS_DEFAULT;
+			}
+		}
+		if ($columns != $newColumns)
+		{
+			$columns = $newColumns;
+			update_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS, $columns);
+		}
+		if (($columns == "") &&
+			(!$_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT]))
+		{
+			$columns = EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS_DEFAULT;
+		}
+		$columns = htmlspecialchars ($columns, ENT_QUOTES);
+		
 		$page = $newPage = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE);
 		if ($_POST[EHT_PHOTOS_WIDGET_MOST_VIEWED_SUBMIT])
 		{
@@ -268,6 +319,11 @@ function EHTPhotosRegisterWidgets ()
 			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_COUNT . "\" type=\"text\" value=\"$count\" /></label>\n" .
 			 "</p>\n" .
 			 "<p>\n" .
+			 "   <label for=\"" . EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS . "\">Columns to show<br>\n" .
+			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS . "\"".
+			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS . "\" type=\"text\" value=\"$columns\" /></label>\n" .
+			 "</p>\n" .
+			 "<p>\n" .
 			 "   <label for=\"" . EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE . "\">Photos page to link to<br>\n" .
 			 "   <input style=\"width: 250px;\" id=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE . "\"".
 			 "    name=\"". EHT_PHOTOS_WIDGET_MOST_VIEWED_PAGE . "\" type=\"text\" value=\"$page\" /></label>\n" .
@@ -277,13 +333,14 @@ function EHTPhotosRegisterWidgets ()
 	}
 
 	register_sidebar_widget (EHT_PHOTOS_WIDGET_MOST_VIEWED_CAPTION, "EHTPhotosWidgetMostViewed", null, EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME);
-	register_widget_control (EHT_PHOTOS_WIDGET_MOST_VIEWED_CAPTION, "EHTPhotosWidgetMostViewedControl", 300, 220, EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME);
+	register_widget_control (EHT_PHOTOS_WIDGET_MOST_VIEWED_CAPTION, "EHTPhotosWidgetMostViewedControl", 300, 270, EHT_PHOTOS_WIDGET_MOST_VIEWED_NAME);
 	
 	endif;
 }
 
 function EHTPhotosWidgetPhotos ($count,
-								$width,
+								$columns,
+								$thumbWidth,
 								$random)
 {
 	global $wpdb, $user_ID;
@@ -308,14 +365,14 @@ function EHTPhotosWidgetPhotos ($count,
 		$groups[$row->id] = $row->name;
 	}
 	
-	$path = $_SERVER["DOCUMENT_ROOT"];
-	$optionImages = get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
-	$basePath = EHTPhotosConcatPaths (EHTPhotosQuitSlashes ($path, true), EHTPhotosQuitSlashes ($optionImages));
-	$url = get_option ("siteurl");
-	$optionThumbs = get_option (EHT_PHOTOS_OPTION_PATH_THUMBS);
-	$baseUrl = EHTPhotosConcatPaths (EHTPhotosQuitSlashes ($url, true), EHTPhotosQuitSlashes ($optionThumbs));
-	$commonPath = $path . EHT_PHOTOS_SLASH . get_option (EHT_PHOTOS_OPTION_PATH_IMAGES);
-	$lengthCommonPath = strlen ($commonPath);
+	$url = EHTPhotosQuitSlashes (get_option ("siteurl"), true);
+	$path = EHTPhotosQuitSlashes ($_SERVER["DOCUMENT_ROOT"], true);
+	$optionThumbs = EHTPhotosQuitSlashes (get_option (EHT_PHOTOS_OPTION_PATH_THUMBS));
+	$optionImages = EHTPhotosQuitSlashes (get_option (EHT_PHOTOS_OPTION_PATH_IMAGES));
+	$thumbBasePath = EHTPhotosConcatPaths ($path, $optionThumbs);
+	$thumbBaseUrl = EHTPhotosConcatPaths ($url, $optionThumbs);
+	$photoBasePath = EHTPhotosConcatPaths ($path, $optionImages);
+	$lengthPhotoBasePath = strlen ($photoBasePath);
 	
 	$text .= "<table>";
 	
@@ -330,7 +387,7 @@ function EHTPhotosWidgetPhotos ($count,
 		}
 		if ($goOn)
 		{
-			$relativePath = substr ($photo->path, $lengthCommonPath);
+			$relativePath = substr ($photo->path, $lengthPhotoBasePath);
 			
 			$permissions = array ();
 			EHTPhotosGetFullPermissions ($relativePath, $permissions);
@@ -355,11 +412,25 @@ function EHTPhotosWidgetPhotos ($count,
 				EHTPhotosExtractExtension ($relativePath, $file, $extension);
 				$relativePath = $file . "_" . get_option (EHT_PHOTOS_OPTION_THUMB) . "." . $extension;
 
+				EHTPhotosExtractFile ($photo->path, $photoPath, $photoName);
+				$thumbPath = EHTPhotosConcatPaths ($thumbBasePath, $path);
+				$thumbUrl = EHTPhotosConcatPaths ($thumbBaseUrl, $path);
+
+				$image = EHTPhotosGetThumb ($photoPath,
+											$thumbUrl,
+											$thumbPath,
+											$photoName,
+											$thumbWidth);
+								
 				$selecteds[$countAchieved]["id"] = $photo->id;
-				$selecteds[$countAchieved]["path"] = EHTPhotosConcatPaths ($baseUrl, $relativePath);
+				$selecteds[$countAchieved]["path"] = $image;
 				$selecteds[$countAchieved]["views"] = $photo->views;
 				
-				$text .= "<tr><td align=\"center\">";
+				if (($countAchieved % $columns) == 0)
+				{
+					$text .= "<tr valign=\"top\">";
+				}
+				$text .= "<td align=\"center\">";
 				if ($page != "")
 				{
 					$text .= "<a href=\"$page?path0=$path&mode0=normal&photo0=$filename\">";
@@ -371,16 +442,28 @@ function EHTPhotosWidgetPhotos ($count,
 				}
 				$text .= "<br>(" . $selecteds[$countAchieved]["views"] . 
 						 " view" . (($selecteds[$countAchieved]["views"] == 1) ? "" : "s") . ")";
-				$text .= "</td></tr>";
-
+				$text .= "</td>";
+				
 				$countAchieved++;
+				if (($countAchieved % $columns) == 0)
+				{
+					$text .= "</tr>";
+				}
 			}
 		}
 		$attempts++;
 	}
+	if ((($countAchieved % $columns) != 0) && ($countAchieved > 0))
+	{
+		$text .= "</tr>";
+	}
 	
 	$text .= "</table>";
-	
+	if ($page != "")
+	{
+		$text .= "<a href=\"$page\">More photos...</a><br>";
+	}
+
 	return ($text);
 }
 

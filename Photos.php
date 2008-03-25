@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.6.5
+Version:		1.6.5.1
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.
@@ -21,6 +21,7 @@ History:		0.1		First release.
 				1.5.3	Corrected some errors (issue #9).
 				1.6		Added widget for random photos (issue #13). Added widget for most viewed photos (issue #12).
 				1.6.5	The widgets are tabulable, and the number of columns is configurable (issue #18).
+				1.6.5.1	Corrected some errors (issue #19).
 
 Setup:
 	1) Install the plugin.
@@ -55,7 +56,7 @@ define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plug
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.6.5");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.6.5.1");
 define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
 define ("EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION", "<a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio</a>");
 define ("EHT_PHOTOS_OPTION_PATH_IMAGES", EHT_PHOTOS_PLUGIN_NAME . "-option-path-images");
@@ -475,7 +476,11 @@ function EHTPhotosListFiltered ($path,
 	    	if (!$inAdmin)
 	    	{
 		    	$permissions = $basePermissions;
-		    	$entryPath = EHT_PHOTOS_SLASH . EHTPhotosConcatPaths ($basePath, $entry);
+		    	$entryPath = EHTPhotosConcatPaths ($basePath, $entry);
+		    	if ($entryPath[0] != EHT_PHOTOS_SLASH)
+		    	{
+		    		$entryPath = EHT_PHOTOS_SLASH . $entryPath;
+		    	}
 		    	EHTPhotosGetPermissions ($entryPath, $permissions);
 		    	if (count ($permissions) > 0)
 		    	{

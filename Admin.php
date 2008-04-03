@@ -35,11 +35,14 @@ function EHTPhotosRegisterWidgets ()
 		$count = ($count != "") ? $count : EHT_PHOTOS_DEFAULT_WIDGET_RANDOM_COUNT;
 		$columns = get_option (EHT_PHOTOS_WIDGET_RANDOM_COLUMNS);
 		$columns = ($columns != "") ? $columns : EHT_PHOTOS_WIDGET_RANDOM_COLUMNS_DEFAULT;
+		$optionUseAjax = get_option (EHT_PHOTOS_OPTION_USE_AJAX);
+		$optionUseAjax = (($optionUseAjax == "") ? EHT_PHOTOS_DEFAULT_USE_AJAX : $optionUseAjax);
+		$optionUseAjax = ($optionUseAjax == EHT_PHOTOS_YES);
 		$text = $before_widget .
 				$before_title . $title . $after_title . "\n" .
 				"<div align=\"center\">\n" . 
 				"<small>\n" .
-				EHTPhotosWidgetPhotos ($count, $columns, $thumb, true) .
+				EHTPhotosWidgetPhotos ($count, $columns, $thumb, true, $optionUseAjax) .
 				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
 				"</small>\n" .
 				"</div>\n" .
@@ -192,11 +195,14 @@ function EHTPhotosRegisterWidgets ()
 		$count = ($count != "") ? $count : EHT_PHOTOS_DEFAULT_WIDGET_MOST_VIEWED_COUNT;
 		$columns = get_option (EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS);
 		$columns = ($columns != "") ? $columns : EHT_PHOTOS_WIDGET_MOST_VIEWED_COLUMNS_DEFAULT;
+		$optionUseAjax = get_option (EHT_PHOTOS_OPTION_USE_AJAX);
+		$optionUseAjax = (($optionUseAjax == "") ? EHT_PHOTOS_DEFAULT_USE_AJAX : $optionUseAjax);
+		$optionUseAjax = ($optionUseAjax == EHT_PHOTOS_YES);
 		$text = $before_widget .
 				$before_title . $title . $after_title . "\n" .
 				"<div align=\"center\">\n" . 
 				"<small>\n" .
-				EHTPhotosWidgetPhotos ($count, $columns, $thumb, false) .
+				EHTPhotosWidgetPhotos ($count, $columns, $thumb, false, $optionUseAjax) .
 				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
 				"</small>\n" .
 				"</div>\n" .
@@ -341,7 +347,8 @@ function EHTPhotosRegisterWidgets ()
 function EHTPhotosWidgetPhotos ($count,
 								$columns,
 								$thumbWidth,
-								$random)
+								$random,
+								$optionUseAjax)
 {
 	global $wpdb, $user_ID;
 	
@@ -415,12 +422,16 @@ function EHTPhotosWidgetPhotos ($count,
 				EHTPhotosExtractFile ($photo->path, $photoPath, $photoName);
 				$thumbPath = EHTPhotosConcatPaths ($thumbBasePath, $path);
 				$thumbUrl = EHTPhotosConcatPaths ($thumbBaseUrl, $path);
-
+				$idDiv = "id-image-" . ($random ? "random" : "most-viewed") . "-$countAchieved-$filename";
+				
 				$image = EHTPhotosGetThumb ($photoPath,
 											$thumbUrl,
 											$thumbPath,
 											$photoName,
-											$thumbWidth);
+											$thumbWidth,
+											$scriptLoading,
+											$idDiv,
+											$optionUseAjax);
 								
 				$selecteds[$countAchieved]["id"] = $photo->id;
 				$selecteds[$countAchieved]["path"] = $image;
@@ -435,7 +446,7 @@ function EHTPhotosWidgetPhotos ($count,
 				{
 					$text .= "<a href=\"$page?path0=$path&mode0=normal&photo0=$filename\">";
 				}
-				$text .= "<img src=\"" . $selecteds[$countAchieved]["path"] . "\">";
+				$text .= "<div id=\"$idDiv\"><img src=\"" . $selecteds[$countAchieved]["path"] . "\" border=\"0\" onLoad=\"$scriptLoading\"></div>";
 				if ($page != "")
 				{
 					$text .= "</a>";
@@ -474,6 +485,7 @@ function EHTPhotosAdminOptions ()
 	global $inAdmin;
 	
 	$inAdmin = true;
+	echo EHT_PHOTOS_JAVASCRIPT;
 	$href = $PHP_SELF . "?page=eht-photos-options&" . EHT_PHOTOS_FIELD_SUBPAGE . "=";
 	echo "<div class=\"wrap\">\n" .
 		 "<h2>EHT Photos</h2>\n" .
@@ -558,6 +570,8 @@ function EHTPhotosAdminSubpageGeneral ($href)
 
 		$optionExif = $_REQUEST[EHT_PHOTOS_OPTION_EXIF];
 
+		$optionUseAjax = $_REQUEST[EHT_PHOTOS_OPTION_USE_AJAX];
+
 		$optionResults = $_REQUEST[EHT_PHOTOS_OPTION_RESULTS];
 		if ($optionResults < EHT_PHOTOS_MIN_RESULTS)
 		{
@@ -577,7 +591,8 @@ function EHTPhotosAdminSubpageGeneral ($href)
 		$optionThumb = get_option (EHT_PHOTOS_OPTION_THUMB);
 		$optionNormal = get_option (EHT_PHOTOS_OPTION_NORMAL);
 		$optionWidth = get_option (EHT_PHOTOS_OPTION_WIDTH);
-		$optionExif = get_option (EHT_PHOTOS_OPTION_EXIF);
+		$optionExif = get_option (EHT_PHOTOS_OPTION_EXIF) == EHT_PHOTOS_YES;
+		$optionUseAjax = get_option (EHT_PHOTOS_OPTION_USE_AJAX) == EHT_PHOTOS_YES;
 		$optionResults = get_option (EHT_PHOTOS_OPTION_RESULTS);
 	}
 
@@ -587,6 +602,7 @@ function EHTPhotosAdminSubpageGeneral ($href)
 				 ($optionNormal == "") &&
 				 ($optionWidth == "") &&
 				 ($optionExif == "") &&
+				 ($optionUseAjax == "") &&
 				 ($optionResults == ""));
 	
 	if ($optionThumb == "")
@@ -604,10 +620,23 @@ function EHTPhotosAdminSubpageGeneral ($href)
 		$optionWidth = EHT_PHOTOS_DEFAULT_WIDTH;
 		$action = EHT_PHOTOS_ACTION_UPDATE;
 	}
-	if ($optionExif == "")
+	if (get_option (EHT_PHOTOS_OPTION_EXIF) == "")
 	{
-		$optionExif = $firstUse ? EHT_PHOTOS_DEFAULT_EXIF : EHT_PHOTOS_NO;
-		$action = $firstUse ? EHT_PHOTOS_ACTION_UPDATE : $action;
+		$optionExif = EHT_PHOTOS_DEFAULT_EXIF;
+		$action = EHT_PHOTOS_ACTION_UPDATE;
+	}
+	else
+	{
+		$optionExif = (($optionExif == "") ? EHT_PHOTOS_NO : EHT_PHOTOS_YES);
+	}
+	if (get_option (EHT_PHOTOS_OPTION_USE_AJAX) == "")
+	{
+		$optionUseAjax = EHT_PHOTOS_DEFAULT_USE_AJAX;
+		$action = EHT_PHOTOS_ACTION_UPDATE;
+	}
+	else
+	{
+		$optionUseAjax = (($optionUseAjax == "") ? EHT_PHOTOS_NO : EHT_PHOTOS_YES);
 	}
 	if ($optionResults == "")
 	{
@@ -623,6 +652,7 @@ function EHTPhotosAdminSubpageGeneral ($href)
         update_option (EHT_PHOTOS_OPTION_NORMAL, $optionNormal);
         update_option (EHT_PHOTOS_OPTION_WIDTH, $optionWidth);
         update_option (EHT_PHOTOS_OPTION_EXIF, $optionExif);
+        update_option (EHT_PHOTOS_OPTION_USE_AJAX, $optionUseAjax);
         update_option (EHT_PHOTOS_OPTION_RESULTS, $optionResults);
         echo "<div class=\"updated\">The options have been updated.</div>\n";
 	}
@@ -680,6 +710,14 @@ function EHTPhotosAdminSubpageGeneral ($href)
 		echo " checked";
 	}
 	echo "> Show EXIF information in detailed photo view (normal size).\n" .
+		 "</p>\n" .
+		 "<p>\n" .
+		 "<input type=\"checkbox\" name=\"" . EHT_PHOTOS_OPTION_USE_AJAX . "\" value=\"" . EHT_PHOTOS_YES . "\"";
+	if ($optionUseAjax == EHT_PHOTOS_YES)
+	{
+		echo " checked";
+	}
+	echo "> Use AJAX to load thumbnails.\n" .
 		 "</p>\n" .
 		 "<p>Results per page into options menus [" . EHT_PHOTOS_MIN_RESULTS . ", " . EHT_PHOTOS_MAX_RESULTS . "]:<br>\n" .
 		 "<input type=\"text\" name=\"" . EHT_PHOTOS_OPTION_RESULTS . "\" value=\"$optionResults\"></p>\n" .

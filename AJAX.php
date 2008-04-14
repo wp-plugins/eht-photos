@@ -29,6 +29,8 @@ function EHTPhotosActionThumbnail ()
 	$pathThumb = $_REQUEST["pathThumb"];
 	$name = $_REQUEST["name"];
 	$thumbSize = $_REQUEST["thumbSize"];
+	$elementOld = $_REQUEST["elementOld"];
+	$elementNew = $_REQUEST["elementNew"];
 	
 	$text = EHTPhotosGenerateThumb ($pathImage,
 									$urlThumb,
@@ -36,7 +38,7 @@ function EHTPhotosActionThumbnail ()
 									$name,
 									$thumbSize);
 	
-	$text = "<img src=\"$text\" border=\"0\">";
+	$text = "<img src=\"$text\" border=\"0\" onLoad=\"HideAndShow ('$elementOld', '$elementNew');\">";
 
 	return ($text);
 }

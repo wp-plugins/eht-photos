@@ -4,7 +4,7 @@ Plugin Name:	EHT Photos
 Plugin URI:		http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/
 Description:	This plugin generates automatically photo galleries with thumbnails and easy recursive navigation links, the photos can be viewed in several sizes, with an easy configuration panel.
 Author:			Emilio Gonz&aacute;lez Monta&ntilde;a
-Version:		1.7
+Version:		1.7.1
 Author URI:		http://ociotec.com/
 
 History:		0.1		First release.
@@ -23,6 +23,7 @@ History:		0.1		First release.
 				1.6.5	The widgets are tabulable, and the number of columns is configurable (issue #18).
 				1.6.5.1	Corrected some errors (issue #19).
 				1.7		The thumbnails are generated and loaded with AJAX (issue #23), and an option has been added to enable/disable it. Permission update (into administration view) are made with AJAX (issue #24).
+				1.7.1	Corrected some cosmetic errors. Adjust the AJAX image loading to hide the thumbnail image until it is loaded (issue #25). Fix not working when Wordpress wasn't on the root URL (issue #27). Not resize images if the thumbnail was bigger than the original image (issue #26). Fix photo counters (issue #9). Fix navigation when Wordpress is not in web root (issue #28). 
 
 Setup:
 	1) Install the plugin.
@@ -107,20 +108,17 @@ function EHTPhotosFilterTheContent ($content)
 			EHTPhotosQuitSlashes ($goodUrl, true);
 			$goodPath = $_SERVER["DOCUMENT_ROOT"];
 			EHTPhotosQuitSlashes ($goodPath, true);
-											
-			$urlImages = $goodUrl . EHT_PHOTOS_SLASH . 
-						 $optionPathImages . EHT_PHOTOS_SLASH .
-						 $tagImages . EHT_PHOTOS_SLASH;
-			$pathImages = $goodPath . EHT_PHOTOS_SLASH . 
-						  $optionPathImages . EHT_PHOTOS_SLASH .
-						  $tagImages . EHT_PHOTOS_SLASH;
-			$urlThumbs = $goodUrl . EHT_PHOTOS_SLASH . 
-						 $optionPathThumbs . EHT_PHOTOS_SLASH .
-						 $tagImages . EHT_PHOTOS_SLASH;
-			$pathThumbs = $goodPath . EHT_PHOTOS_SLASH . 
-						  $optionPathThumbs . EHT_PHOTOS_SLASH .
-						  $tagImages . EHT_PHOTOS_SLASH;
-						  
+			$part = substr ($goodUrl, strpos ($goodUrl, $_SERVER["SERVER_NAME"]) + strlen ($_SERVER["SERVER_NAME"]));
+			if ($part != "")
+			{
+				$goodPath = EHTPhotosConcatPaths ($goodPath, $part);
+			}
+			
+			$urlImages = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($goodUrl, $optionPathImages), $tagImages);
+			$pathImages = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($goodPath, $optionPathImages, true), $tagImages, true);
+			$urlThumbs = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($goodUrl, $optionPathThumbs), $tagImages);
+			$pathThumbs = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($goodPath, $optionPathThumbs, true), $tagImages, true);
+
 			$text .= "<a name=\"" . EHT_PHOTOS_ANCHOR_GALLERY . "$index\"></a>\n";
 			$text .= "<center><table border=\"0\" align=\"center\">\n";
 			$text .= EHTPhotosPrint ($tagPath,
@@ -160,6 +158,8 @@ function EHTPhotosPrint ($printPath,
 						 $optionUseAjax,
 						 $index)
 {
+	global $post;
+	global $inAdmin;
 	global $currentUrl;
 	
 	$text = "";
@@ -193,7 +193,7 @@ function EHTPhotosPrint ($printPath,
 				$imageIndex = $i + 1;
 				if ($i > 0)
 				{
-					$linkPrevious = $currentUrl .
+					$linkPrevious = ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) .
 									EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($currentPath) . "&" .
 									EHT_PHOTOS_VAR_MODE . "$index=" . EHT_PHOTOS_VAR_MODE_NORMAL . "&" .
 									EHT_PHOTOS_VAR_PHOTO . "$index=" . urlencode ($files[1][$i - 1]) .
@@ -201,7 +201,7 @@ function EHTPhotosPrint ($printPath,
 				}
 				if ($i < ($fileCount - 1))
 				{
-					$linkNext = $currentUrl .
+					$linkNext = ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) .
 								EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($currentPath) . "&" .
 								EHT_PHOTOS_VAR_MODE . "$index=" . EHT_PHOTOS_VAR_MODE_NORMAL . "&" .
 								EHT_PHOTOS_VAR_PHOTO . "$index=" . urlencode ($files[1][$i + 1]) .
@@ -230,18 +230,20 @@ function EHTPhotosPrintPath ($path,
 							 $optionWidth,
 							 $extraInfo = "")
 {
+	global $post;
+	global $inAdmin;
 	global $currentUrl;
 	
 	$pieces = explode (EHT_PHOTOS_SLASH, $path);
 	$tempPath = "";
 	$text .= "<tr><td colspan=\"$optionWidth\" align=\"left\">\n";
-	$text .= "<a href=\"$currentUrl" . EHT_PHOTOS_VAR_PATH . "$index=" . EHT_PHOTOS_SLASH . "\">ROOT</a>\n";
+	$text .= "<a href=\"" . ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) . EHT_PHOTOS_VAR_PATH . "$index=" . EHT_PHOTOS_SLASH . "\">ROOT</a>\n";
 	foreach ($pieces as $piece)
 	{
 		if (strlen ($piece) > 0)
 		{
 			$tempPath .= $piece . EHT_PHOTOS_SLASH;
-			$text .= "/<a href=\"$currentUrl" .
+			$text .= "/<a href=\"" . ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) .
 					 EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($tempPath) . 
 					 "#" . EHT_PHOTOS_ANCHOR_GALLERY . "$index\">$piece</a>\n";
 		}
@@ -362,22 +364,26 @@ function EHTPhotosPrintNormal ($name,
 							   $optionUseAjax,
 							   $index)
 {
+	global $post;
+	global $inAdmin;
 	global $currentUrl;
 	
 	$text = "";
 	
 	$link = $urlImages . $currentPath . $name;
-	$baseLink = "<a href=\"$currentUrl".
+	$baseLink = "<a href=\"". ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) .
 				EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($currentPath) .
 				"#" . EHT_PHOTOS_ANCHOR_GALLERY . "$index\">[Thumbnails]</a>";
-	$idDiv = sprintf ("id-image-%d-%s", $index, $name);
-	$normal = EHTPhotosGetThumb ($pathImages . $currentPath,
-								 $urlThumbs . $currentPath,
-								 $pathThumbs . $currentPath,
+	$idDivLoading = sprintf ("id-image-loading-%d", $index);
+	$idDivThumbnail = sprintf ("id-image-thumbnail-%d", $index);
+	$normal = EHTPhotosGetThumb (EHTPhotosConcatPaths ($pathImages, $currentPath),
+								 EHTPhotosConcatPaths ($urlThumbs, $currentPath, true),
+								 EHTPhotosConcatPaths ($pathThumbs, $currentPath),
 								 $name,
 								 $optionNormal,
 								 $scriptLoading,
-								 $idDiv,
+								 $idDivLoading,
+								 $idDivThumbnail,
 								 $optionUseAjax);
 
 	$text .= "      <tr>\n" .
@@ -399,7 +405,8 @@ function EHTPhotosPrintNormal ($name,
 			 "      </tr>\n" .
 			 "      <tr>\n" .
 			 "         <td align=\"center\" colspan=\"3\">\n" .
-			 "            <span onClick=\"window.open ('$link');\" style=\"cursor: pointer;\" id=\"$idDiv\"><img src=\"$normal\" border=\"0\" onLoad=\"$scriptLoading\"></span>\n" .
+			 "            <span onClick=\"window.open ('$link');\" style=\"cursor: pointer;\" id=\"$idDivLoading\"><img src=\"$normal\" border=\"0\" onLoad=\"$scriptLoading\"></span>\n" .
+			 "            <span onClick=\"window.open ('$link');\" style=\"cursor: pointer; visibility: hidden;\" id=\"$idDivThumbnail\"></span>\n" .
 			 "         </td>\n" .
 			 "      </tr>\n" .
 			 "      <tr>\n" .
@@ -540,17 +547,19 @@ function EHTPhotosPrintThumb ($type,
 							  $groups = "",
 							  $basePermissions = "")
 {
-	global $currentUrl;
 	global $inAdmin;
+	global $post;
+	global $currentUrl;
 		
 	$text = "";
 	
-	$idDiv = "id-image-$index-$name";
+	$idDivLoading = "id-image-loading-$index-$x-$y";
+	$idDivThumbnail = "id-image-thumbnail-$index-$x-$y";
 	
 	if ($name == "..")
 	{
 		$parentPath = EHTPhotosGetParent ($currentPath);
-		$link = $currentUrl . 
+		$link = ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) . 
 				EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($parentPath) . 
 				"#" . EHT_PHOTOS_ANCHOR_GALLERY . "$index";
 	}
@@ -558,7 +567,7 @@ function EHTPhotosPrintThumb ($type,
 	{
 		if ($type == EHT_PHOTOS_THUMB_FILE)
 		{
-			$link = $currentUrl .
+			$link = ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) .
 					EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($currentPath) . "&" .
 					EHT_PHOTOS_VAR_MODE . "$index=" . EHT_PHOTOS_VAR_MODE_NORMAL . "&" .
 					EHT_PHOTOS_VAR_PHOTO . "$index=" . urlencode ($name) . 
@@ -566,7 +575,7 @@ function EHTPhotosPrintThumb ($type,
 		}
 		else if ($type == EHT_PHOTOS_THUMB_FOLDER)
 		{
-			$link = $currentUrl .
+			$link = ($inAdmin ? $currentUrl : (get_permalink ($post->ID) . "?")) .
 					EHT_PHOTOS_VAR_PATH . "$index=" . urlencode ($currentPath . $name . EHT_PHOTOS_SLASH) .
 					"#" . EHT_PHOTOS_ANCHOR_GALLERY . "$index";
 		}
@@ -574,13 +583,14 @@ function EHTPhotosPrintThumb ($type,
 
 	if ($type == EHT_PHOTOS_THUMB_FILE)
 	{
-		$thumb = EHTPhotosGetThumb ($pathImages . $currentPath,
-									$urlThumbs . $currentPath,
-									$pathThumbs . $currentPath,
+		$thumb = EHTPhotosGetThumb (EHTPhotosConcatPaths ($pathImages, $currentPath),
+									EHTPhotosConcatPaths ($urlThumbs, $currentPath, true),
+									EHTPhotosConcatPaths ($pathThumbs, $currentPath),
 									$name,
 									$thumbSize,
 									$scriptLoading,
-									$idDiv,
+									$idDivLoading,
+									$idDivThumbnail,
 									$optionUseAjax);
 		$fullPath = EHTPhotosConcatPaths (EHTPhotosConcatPaths ($pathImages, $currentPath), $name);
 		$md5 = md5_file ($fullPath);
@@ -617,7 +627,8 @@ function EHTPhotosPrintThumb ($type,
 	else
 	{
 		$wrappedName = wordwrap ($name, EHT_PHOTOS_WORD_WRAP, " ", true);
-		$text .= "         <span onClick=\"window.location = '$link';\" style=\"cursor: pointer;\" id=\"$idDiv\"><img src=\"$thumb\" border=\"0\" onLoad=\"$scriptLoading\"></span>\n" .
+		$text .= "         <span onClick=\"window.location = '$link';\" style=\"cursor: pointer;\" id=\"$idDivLoading\"><img src=\"$thumb\" border=\"0\" onLoad=\"$scriptLoading\"></span>\n" .
+				 "         <span onClick=\"window.location = '$link';\" style=\"cursor: pointer; visibility: hidden;\" id=\"$idDivThumbnail\"></span><br>\n" .
 				 "         <span onClick=\"window.location = '$link;\" style=\"cursor: pointer;\">" . htmlentities ($wrappedName) . "</span>\n";
 		if ($description != "")
 		{
@@ -694,12 +705,13 @@ function EHTPhotosGetThumb ($pathImage,
 							$name,
 							$thumbSize,
 							&$scriptLoading,
-							$idDiv,
+							$idDivLoading,
+							$idDivThumbnail,
 							$withAjax)
 {
 	$getNormal = true;
 	$scriptLoading = "";
-	if (($idDiv != "") && $withAjax)
+	if (($idDivLoading != "") && ($idDivThumbnail != "") && $withAjax)
 	{
 		$scriptLoading = "AJAXModifyInner ('" . EHT_PHOTOS_PLUGIN_URL_BASE . EHT_PHOTOS_AJAX_THUMBNAIL_GENERATION . 
 						 "pathImage=" . htmlentities ($pathImage) . 
@@ -707,7 +719,9 @@ function EHTPhotosGetThumb ($pathImage,
 						 "&pathThumb=" . htmlentities ($pathThumb) . 
 						 "&name=" . htmlentities ($name) . 
 						 "&thumbSize=" . htmlentities ($thumbSize) . 
-						 "', '$idDiv');";
+						 "&elementOld=" . htmlentities ($idDivLoading) . 
+						 "&elementNew=" . htmlentities ($idDivThumbnail) . 
+						 "', '$idDivLoading', '$idDivThumbnail');";
 		$getNormal = false;
 	}
 
@@ -741,7 +755,7 @@ function EHTPhotosGetDescription ($md5,
 	$views = 0;
 	$name = $photo;
 
-	$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_SELECT, $md5);
+	$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_SELECT_BY_MD5, $md5);
 	$result = $wpdb->get_row ($sql);
 	if ($result)
 	{
@@ -762,14 +776,33 @@ function EHTPhotosGetDescription ($md5,
 	}
 	else
 	{
-		$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_INSERT, $md5, $photo, $fullPath);
-		if (!($wpdb->query ($sql)))
+		$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_SELECT_BY_PATH, $fullPath);
+		$result = $wpdb->get_row ($sql);
+		if ($result)
 		{
-			$text .= "Fail to insert: \"$sql\"<br>\n";
+			$id = $result->id;
+			$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_UPDATE_MD5, $md5, $id);
+			if (!($wpdb->query ($sql)))
+			{
+				$text .= "Fail to update the MD5: \"$sql\"<br>\n";
+			}
+			else
+			{
+				$ok = true;
+			}
 		}
 		else
 		{
-			$ok = true;
+			$sql = sprintf (EHT_PHOTOS_TABLE_PHOTO_INSERT, $md5, $photo, $fullPath);
+			if (!($wpdb->query ($sql)))
+			{
+				$text .= "Fail to insert: \"$sql\" md5: $md5<br>\n";
+			}
+			else
+			{
+				$id = $wpdb->insert_id;
+				$ok = true;
+			}
 		}
 	}
 	

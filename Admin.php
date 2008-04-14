@@ -41,8 +41,8 @@ function EHTPhotosRegisterWidgets ()
 		$text = $before_widget .
 				$before_title . $title . $after_title . "\n" .
 				"<div align=\"center\">\n" . 
-				"<small>\n" .
 				EHTPhotosWidgetPhotos ($count, $columns, $thumb, true, $optionUseAjax) .
+				"<small>\n" .
 				"<i>" . EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION . "</i>\n" .
 				"</small>\n" .
 				"</div>\n" .
@@ -422,7 +422,8 @@ function EHTPhotosWidgetPhotos ($count,
 				EHTPhotosExtractFile ($photo->path, $photoPath, $photoName);
 				$thumbPath = EHTPhotosConcatPaths ($thumbBasePath, $path);
 				$thumbUrl = EHTPhotosConcatPaths ($thumbBaseUrl, $path);
-				$idDiv = "id-image-" . ($random ? "random" : "most-viewed") . "-$countAchieved-$filename";
+				$idDivLoading = "id-image-loading-" . ($random ? "random" : "most-viewed") . "-$countAchieved-$filename";
+				$idDivThumbnail = "id-image-thumbnail-" . ($random ? "random" : "most-viewed") . "-$countAchieved-$filename";
 				
 				$image = EHTPhotosGetThumb ($photoPath,
 											$thumbUrl,
@@ -430,7 +431,8 @@ function EHTPhotosWidgetPhotos ($count,
 											$photoName,
 											$thumbWidth,
 											$scriptLoading,
-											$idDiv,
+											$idDivLoading,
+											$idDivThumbnail,
 											$optionUseAjax);
 								
 				$selecteds[$countAchieved]["id"] = $photo->id;
@@ -441,19 +443,20 @@ function EHTPhotosWidgetPhotos ($count,
 				{
 					$text .= "<tr valign=\"top\">";
 				}
-				$text .= "<td align=\"center\">";
+				$text .= "<td align=\"center\"><small>";
 				if ($page != "")
 				{
 					$text .= "<a href=\"$page?path0=$path&mode0=normal&photo0=$filename\">";
 				}
-				$text .= "<div id=\"$idDiv\"><img src=\"" . $selecteds[$countAchieved]["path"] . "\" border=\"0\" onLoad=\"$scriptLoading\"></div>";
+				$text .= "<div id=\"$idDivLoading\"><img src=\"" . $selecteds[$countAchieved]["path"] . "\" border=\"0\" onLoad=\"$scriptLoading\"></div>";
+				$text .= "<div id=\"$idDivThumbnail\" style=\"visibility: hidden;\"></div>";
 				if ($page != "")
 				{
 					$text .= "</a>";
 				}
-				$text .= "<br>(" . $selecteds[$countAchieved]["views"] . 
-						 " view" . (($selecteds[$countAchieved]["views"] == 1) ? "" : "s") . ")";
-				$text .= "</td>";
+				$text .= "(" . $selecteds[$countAchieved]["views"] . 
+						 " view" . (($selecteds[$countAchieved]["views"] == 1) ? "" : "s") . ")" .
+						 "<small></td>";
 				
 				$countAchieved++;
 				if (($countAchieved % $columns) == 0)
@@ -472,7 +475,7 @@ function EHTPhotosWidgetPhotos ($count,
 	$text .= "</table>";
 	if ($page != "")
 	{
-		$text .= "<a href=\"$page\">More photos...</a><br>";
+		$text .= "<small><a href=\"$page\">More photos...</a></small><br>";
 	}
 
 	return ($text);

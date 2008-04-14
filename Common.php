@@ -7,7 +7,7 @@ define ("EHT_PHOTOS_PLUGIN_URL_BASE", get_option ("siteurl") . "/wp-content/plug
 define ("EHT_PHOTOS_PLUGIN_URL_BASE_IMAGES", EHT_PHOTOS_PLUGIN_URL_BASE . "images/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE", $_SERVER["DOCUMENT_ROOT"] . "/wp-content/plugins/eht-photos/");
 define ("EHT_PHOTOS_PLUGIN_PATH_BASE_IMAGES", EHT_PHOTOS_PLUGIN_PATH_BASE . "images/");
-define ("EHT_PHOTOS_PLUGIN_VERSION", "1.7");
+define ("EHT_PHOTOS_PLUGIN_VERSION", "1.7.1");
 define ("EHT_PHOTOS_PLUGIN_DESCRIPTION", "Plugin <a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> - Created by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio Gonz&aacute;lez Monta&ntilde;a</a>");
 define ("EHT_PHOTOS_PLUGIN_SHORT_DESCRIPTION", "<a href=\"http://ociotec.com/index.php/2008/01/10/eht-photos-plugin-para-wordpress/\" target=\"_blank\">" . EHT_PHOTOS_PLUGIN_TITLE . " v" . EHT_PHOTOS_PLUGIN_VERSION . "</a> by <a href=\"http://ociotec.com\" target=\"_blank\">Emilio</a>");
 define ("EHT_PHOTOS_OPTION_PATH_IMAGES", EHT_PHOTOS_PLUGIN_NAME . "-option-path-images");
@@ -102,6 +102,7 @@ define ("EHT_PHOTOS_VAR_MODE_THUMB", "thumb");
 define ("EHT_PHOTOS_VAR_MODE_NORMAL", "normal");
 define ("EHT_PHOTOS_WORD_WRAP", 20);
 define ("EHT_PHOTOS_SLASH", strstr (PHP_OS, "WIN") ? "\\" : "/");
+define ("EHT_PHOTOS_SLASH_URL", "/");
 define ("EHT_PHOTOS_IMAGE_FOLDER", "Folder.jpg");
 define ("EHT_PHOTOS_IMAGE_LOADING", "Loading.gif");
 define ("EHT_PHOTOS_IMAGE_EMPTY", "Transparent.gif");
@@ -138,10 +139,13 @@ define ("EHT_PHOTOS_TABLE_PHOTO_CREATE",
 		  views INT NOT NULL,
 		  path VARCHAR (255) NOT NULL,
 		  PRIMARY KEY (id),
-		  UNIQUE INDEX md5Unique (md5)
+		  UNIQUE INDEX md5Unique (md5),
+		  UNIQUE INDEX pathUnique (path)
 		);");
-define ("EHT_PHOTOS_TABLE_PHOTO_SELECT",
+define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_BY_MD5",
 		"SELECT * FROM " . EHT_PHOTOS_TABLE_PHOTO . " WHERE md5 = \"%s\";");
+define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_BY_PATH",
+		"SELECT * FROM " . EHT_PHOTOS_TABLE_PHOTO . " WHERE path = \"%s\";");
 define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL_PAGINABLE",
 		"SELECT * FROM " . EHT_PHOTOS_TABLE_PHOTO . " ORDER BY %s %s LIMIT %d, %d;");
 define ("EHT_PHOTOS_TABLE_PHOTO_SELECT_ALL",
@@ -156,6 +160,8 @@ define ("EHT_PHOTOS_TABLE_PHOTO_UPDATE_VIEWS",
 		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET views = %d WHERE id = %d;");
 define ("EHT_PHOTOS_TABLE_PHOTO_UPDATE_PATH",
 		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET path = \"%s\" WHERE id = %d;");
+define ("EHT_PHOTOS_TABLE_PHOTO_UPDATE_MD5",
+		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET md5 = \"%s\" WHERE id = %d;");
 define ("EHT_PHOTOS_TABLE_PHOTO_CLEAN_PATH",
 		"UPDATE " . EHT_PHOTOS_TABLE_PHOTO . " SET path = REPLACE (path, \"//\", \"/\"");
 define ("EHT_PHOTOS_TABLE_COMMENT_CREATE",
@@ -266,6 +272,11 @@ function EHTPhotosGenerateThumb ($pathImage,
 				$newWidth = $thumbSize * $ratio;
 				$newHeight = $thumbSize;
 			}
+			if (($newWidth >= $width) || ($newHeight >= $height))
+			{
+				$newWidth = $width;
+				$newHeight = $height;
+			}
 			$thumb = imagecreatetruecolor ($newWidth, $newHeight);
 			imagecopyresampled ($thumb, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
 			imagejpeg ($thumb, $thumbName);
@@ -363,23 +374,30 @@ function EHTPhotosCreateFolder ($folder)
 
 function EHTPhotosQuitSlashes (&$path,
 							   $onlyEnd = false,
-							   $onlyBegin = false)
+							   $onlyBegin = false,
+							   $isUrl = false)
 {
 	$size = strlen ($path);
+	$slash = ($isUrl ? EHT_PHOTOS_SLASH_URL : EHT_PHOTOS_SLASH);
+	$slashLength = strlen ($slash);
 	if ($size > 0)
 	{
-		while ((!$onlyEnd) && ($size > 0) && ($path[0] == EHT_PHOTOS_SLASH))
+		while ((!$onlyEnd) &&
+			   ($size >= $slashLength) && 
+			   (substr ($path, 0, $slashLength) == $slash))
 		{
-			$path = substr ($path, 1);
-			$size--;
+			$path = substr ($path, $slashLength);
+			$size -= $slashLength;
 		}
-		while ((!$onlyBegin) && ($size > 0) && ($path[$size - 1] == EHT_PHOTOS_SLASH))
+		while ((!$onlyBegin) &&
+			   ($size >= $slashLength) &&
+			   (substr ($path, $size - $slashLength) == $slash))
 		{
-			$path = substr ($path, 0, ($size - 1));
-			$size--;
+			$path = substr ($path, 0, ($size - $slashLength));
+			$size -= $slashLength;
 		}
 	}
-	
+
 	return ($path);
 }
 
@@ -431,14 +449,14 @@ function EHTPhotosTextVertical ($text)
 	return ($vertical);
 }
 
-function EHTPhotosConcatPaths ($path1, $path2)
+function EHTPhotosConcatPaths ($path1, $path2, $isUrl = false)
 {
 	$cleanedPath1 = $path1;
-	EHTPhotosQuitSlashes ($cleanedPath1, true, false);
+	EHTPhotosQuitSlashes ($cleanedPath1, true, false, $isUrl);
 	$cleanedPath2 = $path2;
-	EHTPhotosQuitSlashes ($cleanedPath2, false, true);
+	EHTPhotosQuitSlashes ($cleanedPath2, false, true, $isUrl);
 
-	$path = $cleanedPath1 . EHT_PHOTOS_SLASH . $cleanedPath2;
+	$path = $cleanedPath1 . ($isUrl ? EHT_PHOTOS_SLASH_URL : EHT_PHOTOS_SLASH) . $cleanedPath2;
 
 	return ($path);
 }

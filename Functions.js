@@ -1,5 +1,5 @@
 
-function AJAXModifyInner (url, element)
+function AJAXModifyInner (url, elementOld, elementNew)
 {
 	var request;
 	var text;
@@ -18,7 +18,7 @@ function AJAXModifyInner (url, element)
 		{
 			text = "Error " + status + ": '" + statusText + "'";
 		}
-		document.getElementById (element).innerHTML = text;
+		document.getElementById (elementNew).innerHTML = text;
 	}
 	request.Get (url)
 }
@@ -30,4 +30,11 @@ function AJAXExecute (url)
 	
 	request = new AJAXRequest ();
 	request.Get (url);
+}
+
+function HideAndShow (elementOld, elementNew)
+{
+	document.getElementById (elementNew).style.visibility = 'visible';
+	document.getElementById (elementOld).innerHTML = '';
+	document.getElementById ($elementOld).style.visibility = 'hidden';
 }
